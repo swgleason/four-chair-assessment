@@ -1,5 +1,6 @@
 import {
   GROWTH_SECTION_CHOICES,
+  questions,
   SECTION_ONE_CHOICES,
   type AnswerChoice,
   type SectionNumber,
@@ -26,6 +27,9 @@ const FAILURE_POINTS: Record<AnswerChoice, number> = {
   strong: 0,
 };
 
+const MAX_SECTION_FAILURE_POINTS = 14;
+const SECTION_FAILURE_THRESHOLD = 4;
+
 export function scoreSection(
   section: SectionNumber,
   answers: readonly AnswerChoice[],
@@ -48,8 +52,43 @@ export function scoreSection(
   return {
     section,
     failurePoints,
-    failed: failurePoints >= 4,
+    failed: failurePoints >= SECTION_FAILURE_THRESHOLD,
   };
+}
+
+export function failingSectionProgressPercent(failurePoints: number): number {
+  if (
+    !Number.isInteger(failurePoints) ||
+    failurePoints < SECTION_FAILURE_THRESHOLD ||
+    failurePoints > MAX_SECTION_FAILURE_POINTS
+  ) {
+    throw new RangeError("A failed section must have 4 to 14 failure points.");
+  }
+
+  return Math.round(
+    ((MAX_SECTION_FAILURE_POINTS - failurePoints) /
+      (MAX_SECTION_FAILURE_POINTS - SECTION_FAILURE_THRESHOLD)) *
+      950,
+  ) / 10;
+}
+
+export function resultProgressPercent(
+  chair: ChairNumber,
+  answers: Partial<Record<number, AnswerChoice>>,
+): number {
+  const sectionAnswers = questions
+    .filter(({ section }) => section === chair)
+    .map(({ id }) => {
+      const answer = answers[id];
+      if (answer === undefined) {
+        throw new RangeError(`Question ${id} has no saved answer.`);
+      }
+      return answer;
+    });
+  const sectionScore = scoreSection(chair, sectionAnswers);
+
+  if (chair === 4 && !sectionScore.failed) return 100;
+  return failingSectionProgressPercent(sectionScore.failurePoints);
 }
 
 export function routeAfterSection(score: SectionScore): SectionRoute {

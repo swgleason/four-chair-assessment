@@ -6,10 +6,24 @@ import {
   type AnswerChoice,
   type SectionNumber,
 } from "../content/questions";
-import { routeAfterSection, scoreSection } from "./scoring";
+import {
+  failingSectionProgressPercent,
+  resultProgressPercent,
+  routeAfterSection,
+  scoreSection,
+} from "./scoring";
 
 function highAnswers(section: SectionNumber): AnswerChoice[] {
   return Array(7).fill(section === 1 ? "agree" : "strong");
+}
+
+function highAnswerMap(): Partial<Record<number, AnswerChoice>> {
+  return Object.fromEntries(
+    questions.map(({ id, section }) => [
+      id,
+      section === 1 ? "agree" : "strong",
+    ]),
+  );
 }
 
 describe("section scoring", () => {
@@ -126,5 +140,55 @@ describe("section scoring", () => {
     expect(() =>
       scoreSection(1, ["strong", "strong", "strong", "strong", "strong", "strong", "strong"]),
     ).toThrow(TypeError);
+  });
+
+  it.each([
+    [4, 95],
+    [5, 85.5],
+    [6, 76],
+    [7, 66.5],
+    [8, 57],
+    [9, 47.5],
+    [10, 38],
+    [11, 28.5],
+    [12, 19],
+    [13, 9.5],
+    [14, 0],
+  ])(
+    "maps %i failure points to %i%% of the active segment",
+    (failurePoints, expectedPercent) => {
+      expect(failingSectionProgressPercent(failurePoints)).toBe(expectedPercent);
+    },
+  );
+
+  it("uses only the section that determines the chair destination", () => {
+    for (const chair of [1, 2, 3, 4] as const) {
+      const answers = highAnswerMap();
+      const sectionQuestions = questions.filter(
+        ({ section }) => section === chair,
+      );
+      const lowestAnswer = chair === 1 ? "disagree" : "weak";
+      answers[sectionQuestions[0].id] = lowestAnswer;
+      answers[sectionQuestions[1].id] = lowestAnswer;
+
+      expect(resultProgressPercent(chair, answers)).toBe(95);
+    }
+  });
+
+  it("uses full progress when all sections pass to Chair 4", () => {
+    expect(resultProgressPercent(4, highAnswerMap())).toBe(100);
+  });
+
+  it("limits a failing Chair 4 segment to the same 70% maximum", () => {
+    const answers = highAnswerMap();
+    const sectionFour = questions.filter(({ section }) => section === 4);
+    answers[sectionFour[0].id] = "weak";
+    answers[sectionFour[1].id] = "weak";
+
+    expect(resultProgressPercent(4, answers)).toBe(95);
+  });
+
+  it("rejects passing scores for failing-segment progress", () => {
+    expect(() => failingSectionProgressPercent(3)).toThrow(RangeError);
   });
 });

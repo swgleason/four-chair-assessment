@@ -26,7 +26,7 @@ export function WelcomeScreen({
         <p className="eyebrow">A tool for reflection</p>
         <h1 id="welcome-title">Four Chair Assessment</h1>
         <p className="intro-copy">
-          A tool for reflection and identifying next steps.
+          Jesus invited people to follow Him in stages: Come and see, Follow me, Fish for people, Go and bear fruit. Answer a few questions to find which chair you’re in today and what comes next.
         </p>
         <p className="privacy-copy">
           Your progress is stored in this browser on this device and does not

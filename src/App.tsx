@@ -11,6 +11,7 @@ import {
   type AssessmentProgress,
 } from "./lib/progressStorage";
 import { answerAndAdvance } from "./lib/assessmentFlow";
+import { resultProgressPercent } from "./lib/scoring";
 
 type Screen = "welcome" | "assessment" | "result";
 
@@ -110,9 +111,15 @@ export default function App() {
       throw new Error("Completed assessment is missing a chair destination.");
     }
 
+    const segmentProgressPercent = resultProgressPercent(
+      progress.destination,
+      progress.answers,
+    );
+
     return (
       <ChairScreen
         chair={progress.destination}
+        segmentProgressPercent={segmentProgressPercent}
         notice={notice}
         onStartOver={startOver}
       />
