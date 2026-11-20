@@ -1,13 +1,18 @@
+import { useEffect, useState } from "react";
 import { chairs } from "../content/chairs";
+import { getDefaultLinksForChair } from "../content/defaultChairLinks";
+import { fetchLinksForChair } from "../lib/chairLinksService";
 import type { ChairNumber } from "../lib/scoring";
+import type { ChairLinkItem } from "../types/chairLinks";
 
 const chairNumbers: readonly ChairNumber[] = [1, 2, 3, 4];
 
-interface ChairScreenProps {
+export interface ChairScreenProps {
   chair: ChairNumber;
   segmentProgressPercent: number;
   notice: string;
   onStartOver: () => void;
+  initialLinks?: readonly ChairLinkItem[];
 }
 
 export function ChairScreen({
@@ -15,7 +20,35 @@ export function ChairScreen({
   segmentProgressPercent,
   notice,
   onStartOver,
+  initialLinks,
 }: ChairScreenProps) {
+  const [links, setLinks] = useState<readonly ChairLinkItem[]>(() =>
+    initialLinks !== undefined ? initialLinks : getDefaultLinksForChair(chair),
+  );
+
+  useEffect(() => {
+    if (initialLinks !== undefined) {
+      setLinks(initialLinks);
+      return;
+    }
+
+    let isMounted = true;
+    setLinks(getDefaultLinksForChair(chair));
+    fetchLinksForChair(chair).then((result) => {
+      if (isMounted) {
+        setLinks(result.items);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [chair, initialLinks]);
+
+  const activeLinks = links.filter((item) => item.isActive !== false);
+  const groups = activeLinks.filter((item) => item.category === "group");
+  const resources = activeLinks.filter((item) => item.category === "resource");
+
   const content = chairs[chair];
   const overallProgress =
     Math.round(((chair - 1 + segmentProgressPercent / 100) / 4) * 1000) / 10;
@@ -127,7 +160,10 @@ export function ChairScreen({
           </nav>
         </header>
 
-        <section className="result-content" aria-labelledby="chair-content-title">
+        <section
+          className="result-content"
+          aria-labelledby="chair-content-title"
+        >
           <h2 id="chair-content-title">{content.heading}</h2>
           {content.explanationParagraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
@@ -143,6 +179,64 @@ export function ChairScreen({
             </>
           )}
         </section>
+
+        {groups.length > 0 && (
+          <section
+            className="chair-links-section"
+            aria-labelledby="chair-groups-heading"
+          >
+            <h3 id="chair-groups-heading">Small Groups to Join</h3>
+            <div className="chair-link-list">
+              {groups.map((group) => (
+                <article className="chair-link-card" key={group.id}>
+                  <div className="chair-link-card-body">
+                    <h4 className="chair-link-title">{group.title}</h4>
+                    <p className="chair-link-description">
+                      {group.description}
+                    </p>
+                  </div>
+                  <a
+                    href={group.url}
+                    className="chair-link-action"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View &amp; Join Group
+                  </a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {resources.length > 0 && (
+          <section
+            className="chair-links-section"
+            aria-labelledby="chair-resources-heading"
+          >
+            <h3 id="chair-resources-heading">Recommended Resources</h3>
+            <div className="chair-link-list">
+              {resources.map((resource) => (
+                <article className="chair-link-card" key={resource.id}>
+                  <div className="chair-link-card-body">
+                    <h4 className="chair-link-title">{resource.title}</h4>
+                    <p className="chair-link-description">
+                      {resource.description}
+                    </p>
+                  </div>
+                  <a
+                    href={resource.url}
+                    className="chair-link-action"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open Resource
+                  </a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {notice && (
           <p className="status-message" role="status">
