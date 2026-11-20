@@ -31,6 +31,12 @@ create trigger trigger_chair_links_updated_at
   for each row
   execute function public.set_updated_at();
 
+-- Table-level grants for Supabase roles (required so PostgREST can access the table)
+grant usage on schema public to anon, authenticated;
+grant select on table public.chair_links to anon;
+grant select, insert, update, delete on table public.chair_links to authenticated;
+grant all on table public.chair_links to service_role;
+
 -- Enable Row-Level Security (RLS)
 alter table public.chair_links enable row level security;
 
