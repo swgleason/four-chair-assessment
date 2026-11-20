@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { AssessmentScreen } from "./components/AssessmentScreen";
 import { ChairScreen } from "./components/ChairScreen";
 import { WelcomeScreen } from "./components/WelcomeScreen";
@@ -17,11 +18,48 @@ type Screen = "welcome" | "assessment" | "result";
 
 const initialRead = readProgress();
 
+function isAdminRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.location.pathname === "/admin" || window.location.hash === "#/admin"
+  );
+}
+
 export default function App() {
+  const [isAdmin, setIsAdmin] = useState(isAdminRoute);
   const [screen, setScreen] = useState<Screen>("welcome");
   const [savedProgress, setSavedProgress] = useState(initialRead.progress);
   const [progress, setProgress] = useState<AssessmentProgress | null>(null);
   const [notice, setNotice] = useState(initialRead.error ?? "");
+
+  useEffect(() => {
+    function handleLocationChange() {
+      setIsAdmin(isAdminRoute());
+    }
+
+    window.addEventListener("popstate", handleLocationChange);
+    window.addEventListener("hashchange", handleLocationChange);
+
+    return () => {
+      window.removeEventListener("popstate", handleLocationChange);
+      window.removeEventListener("hashchange", handleLocationChange);
+    };
+  }, []);
+
+  function navigateToAdmin() {
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", "/admin");
+    }
+    setIsAdmin(true);
+  }
+
+  function navigateToHome() {
+    if (typeof window !== "undefined") {
+      window.history.pushState({}, "", "/");
+    }
+    setIsAdmin(false);
+    setScreen("welcome");
+  }
 
   function persist(next: AssessmentProgress) {
     setProgress(next);
@@ -51,7 +89,11 @@ export default function App() {
   }
 
   function startOver() {
-    if (!window.confirm("Start over and delete this assessment's saved progress?")) {
+    if (
+      !window.confirm(
+        "Start over and delete this assessment's saved progress?",
+      )
+    ) {
       return;
     }
     if (!clearProgress()) {
@@ -68,10 +110,7 @@ export default function App() {
     setScreen("assessment");
   }
 
-  function answerQuestion(
-    questionId: number,
-    answer: AnswerChoice,
-  ) {
+  function answerQuestion(questionId: number, answer: AnswerChoice) {
     if (!progress) return;
     const transition = answerAndAdvance(progress, questionId, answer);
     persist(transition.progress);
@@ -83,6 +122,10 @@ export default function App() {
     persist({ ...progress, currentQuestion: progress.currentQuestion - 1 });
   }
 
+  if (isAdmin) {
+    return <AdminDashboard onExitAdmin={navigateToHome} />;
+  }
+
   if (screen === "welcome") {
     return (
       <WelcomeScreen
@@ -91,6 +134,7 @@ export default function App() {
         onBegin={begin}
         onContinue={continueAssessment}
         onStartOver={startOver}
+        onOpenAdmin={navigateToAdmin}
       />
     );
   }
@@ -133,6 +177,7 @@ export default function App() {
       onBegin={begin}
       onContinue={continueAssessment}
       onStartOver={startOver}
+      onOpenAdmin={navigateToAdmin}
     />
   );
 }
