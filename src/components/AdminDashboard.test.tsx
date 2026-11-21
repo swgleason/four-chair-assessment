@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminLogin } from "./AdminLogin";
 import type { ChairLinkItem } from "../types/chairLinks";
+import type { ChairContact } from "../types/chairContacts";
 
 describe("AdminLogin", () => {
   it("renders login card with email and password inputs or setup instructions", () => {
@@ -66,6 +67,21 @@ describe("AdminDashboard", () => {
     },
   ];
 
+  const sampleContacts: ChairContact[] = [
+    {
+      chair: 1,
+      contactName: "Seeker Pastor",
+      contactEmail: "seeker@ocupc.com",
+      isEnabled: true,
+    },
+    {
+      chair: 2,
+      contactName: "Discipleship Team",
+      contactEmail: "discipleship@ocupc.com",
+      isEnabled: true,
+    },
+  ];
+
   it("shows login form when no active session exists", () => {
     const markup = renderToStaticMarkup(
       <AdminDashboard onExitAdmin={vi.fn()} initialSession={null} />,
@@ -82,6 +98,7 @@ describe("AdminDashboard", () => {
         onExitAdmin={vi.fn()}
         initialSession={mockUserSession}
         initialLinks={sampleLinks}
+        initialContacts={sampleContacts}
         initialSelectedChair={1}
       />,
     );
@@ -105,6 +122,11 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("Chair 1 Small Group");
     expect(markup).toContain("Chair 1 Study Guide");
 
+    // Next-steps email contact card for Chair 1
+    expect(markup).toContain("Next-Steps Email Contact for Chair 1");
+    expect(markup).toContain('value="seeker@ocupc.com"');
+    expect(markup).toContain('value="Seeker Pastor"');
+
     // Chair 2 items are NOT visible in Chair 1's view
     expect(markup).not.toContain("Chair 2 Discipleship Group");
     expect(markup).not.toContain("Chair 2 Devotional Guide");
@@ -116,6 +138,7 @@ describe("AdminDashboard", () => {
         onExitAdmin={vi.fn()}
         initialSession={mockUserSession}
         initialLinks={sampleLinks}
+        initialContacts={sampleContacts}
         initialSelectedChair={2}
       />,
     );
@@ -125,6 +148,10 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("Chair 2 Devotional Guide");
     expect(markup).toContain("Active");
     expect(markup).toContain("Hidden"); // c2-r1 is inactive
+
+    // Next-steps contact for Chair 2
+    expect(markup).toContain("Next-Steps Email Contact for Chair 2");
+    expect(markup).toContain('value="discipleship@ocupc.com"');
 
     // Chair 1 items are NOT visible in Chair 2's view
     expect(markup).not.toContain("Chair 1 Small Group");

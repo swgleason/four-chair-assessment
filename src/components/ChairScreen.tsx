@@ -13,6 +13,7 @@ export interface ChairScreenProps {
   notice: string;
   onStartOver: () => void;
   initialLinks?: readonly ChairLinkItem[];
+  disableNextStepsForm?: boolean;
 }
 
 export function ChairScreen({
@@ -21,10 +22,22 @@ export function ChairScreen({
   notice,
   onStartOver,
   initialLinks,
+  disableNextStepsForm = false,
 }: ChairScreenProps) {
   const [links, setLinks] = useState<readonly ChairLinkItem[]>(() =>
     initialLinks !== undefined ? initialLinks : getDefaultLinksForChair(chair),
   );
+
+  // Next Steps form states
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (initialLinks !== undefined) {
@@ -44,6 +57,51 @@ export function ChairScreen({
       isMounted = false;
     };
   }, [chair, initialLinks]);
+
+  async function handleSendNextSteps(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setSubmissionResult(null);
+
+    try {
+      const res = await fetch("/api/send-next-steps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chair,
+          senderName: senderName.trim(),
+          senderEmail: senderEmail.trim(),
+          message: message.trim(),
+          website: honeypot,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSubmissionResult({
+          ok: true,
+          message:
+            "Thank you! Your message has been sent to our leadership team. We look forward to connecting with you soon.",
+        });
+        setMessage("");
+      } else {
+        setSubmissionResult({
+          ok: false,
+          message:
+            data.error ||
+            "Unable to send your request at this time. Please try again later.",
+        });
+      }
+    } catch {
+      setSubmissionResult({
+        ok: false,
+        message:
+          "Unable to connect to the email service. Please try again later.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const activeLinks = links.filter((item) => item.isActive !== false);
   const groups = activeLinks.filter((item) => item.category === "group");
@@ -235,6 +293,107 @@ export function ChairScreen({
                 </article>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Connect About Your Next Steps */}
+        {!disableNextStepsForm && (
+          <section
+            className="chair-next-steps-section"
+            aria-labelledby="next-steps-heading"
+          >
+            <h3 id="next-steps-heading">Connect About Your Next Steps</h3>
+            <p className="chair-next-steps-intro">
+              Whether you have questions about your result in{" "}
+              <strong>
+                Chair {chair} ({content.stageLabel})
+              </strong>{" "}
+              or want personal encouragement and guidance for your spiritual
+              journey, our ministry team would love to connect with you.
+            </p>
+
+            {submissionResult && (
+              <div
+                className={`status-message ${
+                  submissionResult.ok
+                    ? "admin-success-message"
+                    : "admin-error-message"
+                }`}
+                role="status"
+              >
+                {submissionResult.message}
+              </div>
+            )}
+
+            {(!submissionResult || !submissionResult.ok) && (
+              <form
+                className="chair-next-steps-form"
+                onSubmit={handleSendNextSteps}
+              >
+                <div className="chair-next-steps-field">
+                  <label htmlFor="next-steps-name">Your Name</label>
+                  <input
+                    id="next-steps-name"
+                    type="text"
+                    required
+                    placeholder="Your Name"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div className="chair-next-steps-field">
+                  <label htmlFor="next-steps-email">Your Email</label>
+                  <input
+                    id="next-steps-email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={senderEmail}
+                    onChange={(e) => setSenderEmail(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div className="chair-next-steps-field">
+                  <label htmlFor="next-steps-message">
+                    What Next Steps or Questions Would You Like to Share?
+                  </label>
+                  <textarea
+                    id="next-steps-message"
+                    required
+                    rows={4}
+                    placeholder={`Share any questions, prayer requests, or thoughts about taking your next step in Chair ${chair}...`}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+
+                {/* Honeypot field */}
+                <div className="visually-hidden" aria-hidden="true">
+                  <label htmlFor="website-hp">Website</label>
+                  <input
+                    id="website-hp"
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="button button-primary chair-next-steps-submit"
+                  disabled={submitting}
+                >
+                  {submitting ? "Sending Request..." : "Send Next Steps Request"}
+                </button>
+              </form>
+            )}
           </section>
         )}
 

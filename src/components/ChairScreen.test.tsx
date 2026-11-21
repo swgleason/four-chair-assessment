@@ -8,6 +8,7 @@ function renderChair(
   chair: 1 | 2 | 3 | 4,
   segmentProgressPercent: number,
   initialLinks?: readonly ChairLinkItem[],
+  disableNextStepsForm?: boolean,
 ) {
   return renderToStaticMarkup(
     <ChairScreen
@@ -16,6 +17,7 @@ function renderChair(
       notice=""
       onStartOver={vi.fn()}
       initialLinks={initialLinks}
+      disableNextStepsForm={disableNextStepsForm}
     />,
   );
 }
@@ -194,5 +196,25 @@ describe("ChairScreen links sections", () => {
       expect(markup).toContain(link.description);
       expect(markup).toContain(`href="${link.url}"`);
     }
+  });
+});
+
+describe("ChairScreen Next-Steps Outreach Section", () => {
+  it("renders 'Connect About Your Next Steps' outreach form by default", () => {
+    const markup = renderChair(2, 50);
+
+    expect(markup).toContain("Connect About Your Next Steps");
+    expect(markup).toContain("Your Name");
+    expect(markup).toContain("Your Email");
+    expect(markup).toContain("What Next Steps or Questions Would You Like to Share?");
+    expect(markup).toContain("Send Next Steps Request");
+    expect(markup).toContain('name="website"'); // Honeypot exists
+  });
+
+  it("omits 'Connect About Your Next Steps' when disableNextStepsForm is true", () => {
+    const markup = renderChair(2, 50, undefined, true);
+
+    expect(markup).not.toContain("Connect About Your Next Steps");
+    expect(markup).not.toContain("Send Next Steps Request");
   });
 });

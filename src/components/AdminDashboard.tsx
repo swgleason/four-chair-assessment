@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { chairs } from "../content/chairs";
 import {
+  fetchChairContacts,
+  upsertChairContact,
+} from "../lib/chairContactsService";
+import {
   createChairLink,
   deleteChairLink,
   fetchAllChairLinks,
@@ -9,6 +13,7 @@ import {
 } from "../lib/chairLinksService";
 import type { ChairNumber } from "../lib/scoring";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import type { ChairContact } from "../types/chairContacts";
 import {
   validateChairLinkInput,
   type ChairLinkInput,
@@ -24,6 +29,7 @@ export interface AdminDashboardProps {
   onExitAdmin: () => void;
   initialSession?: any;
   initialLinks?: ChairLinkItem[];
+  initialContacts?: ChairContact[];
   initialSelectedChair?: ChairNumber;
   initialPreviewing?: boolean;
 }
@@ -32,6 +38,7 @@ export function AdminDashboard({
   onExitAdmin,
   initialSession,
   initialLinks,
+  initialContacts,
   initialSelectedChair = 1,
   initialPreviewing = false,
 }: AdminDashboardProps) {
@@ -48,6 +55,43 @@ export function AdminDashboard({
     text: string;
   } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(initialPreviewing);
+
+  // Chair contacts state
+  const [contacts, setContacts] = useState<Record<number, ChairContact>>(() => {
+    const map: Record<number, ChairContact> = {};
+    if (initialContacts) {
+      for (const c of initialContacts) {
+        map[c.chair] = c;
+      }
+    }
+    return map;
+  });
+  const [contactEmail, setContactEmail] = useState(() => {
+    if (initialContacts) {
+      const match = initialContacts.find((c) => c.chair === initialSelectedChair);
+      return match?.contactEmail || "";
+    }
+    return "";
+  });
+  const [contactName, setContactName] = useState(() => {
+    if (initialContacts) {
+      const match = initialContacts.find((c) => c.chair === initialSelectedChair);
+      return match?.contactName || "";
+    }
+    return "";
+  });
+  const [contactIsEnabled, setContactIsEnabled] = useState(() => {
+    if (initialContacts) {
+      const match = initialContacts.find((c) => c.chair === initialSelectedChair);
+      return match?.isEnabled ?? true;
+    }
+    return true;
+  });
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const [contactStatusMessage, setContactStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   // Editing state for inline editing
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -96,7 +140,7 @@ export function AdminDashboard({
     };
   }, [initialSession]);
 
-  // Load links on mount and when authenticated
+  // Load links and contacts on mount and when authenticated
   async function loadLinks() {
     if (!isSupabaseConfigured || !supabase) return;
     setLoading(true);
@@ -116,11 +160,37 @@ export function AdminDashboard({
     }
   }
 
+  async function loadContacts() {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const data = await fetchChairContacts();
+      const map: Record<number, ChairContact> = {};
+      for (const c of data) {
+        map[c.chair] = c;
+      }
+      setContacts(map);
+    } catch {
+      // Handled silently or non-blockingly
+    }
+  }
+
   useEffect(() => {
     if (session && initialLinks === undefined) {
       loadLinks();
     }
-  }, [session, initialLinks]);
+    if (session && initialContacts === undefined) {
+      loadContacts();
+    }
+  }, [session, initialLinks, initialContacts]);
+
+  // Sync active contact form with selected chair
+  useEffect(() => {
+    const contact = contacts[selectedChair];
+    setContactEmail(contact?.contactEmail || "");
+    setContactName(contact?.contactName || "");
+    setContactIsEnabled(contact?.isEnabled ?? true);
+    setContactStatusMessage(null);
+  }, [selectedChair, contacts]);
 
   async function handleSignOut() {
     if (supabase) {
@@ -140,6 +210,38 @@ export function AdminDashboard({
 
   // Items for preview (active links only)
   const previewLinks = chairLinks.filter((item) => item.isActive);
+
+  // Contact form save handler
+  async function handleSaveContact(e: React.FormEvent) {
+    e.preventDefault();
+    setContactStatusMessage(null);
+    setIsSavingContact(true);
+
+    try {
+      const saved = await upsertChairContact({
+        chair: selectedChair,
+        contactEmail: contactEmail.trim(),
+        contactName: contactName.trim() || null,
+        isEnabled: contactIsEnabled,
+      });
+
+      setContacts((prev) => ({ ...prev, [selectedChair]: saved }));
+      setContactStatusMessage({
+        type: "success",
+        text: `Next-steps email contact for Chair ${selectedChair} saved successfully.`,
+      });
+    } catch (err) {
+      setContactStatusMessage({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Failed to save chair contact settings.",
+      });
+    } finally {
+      setIsSavingContact(false);
+    }
+  }
 
   // CRUD Handlers
   async function handleCreateItem(category: LinkCategory) {
@@ -410,7 +512,7 @@ export function AdminDashboard({
       {/* Chair Controls & Live Preview Toggle */}
       <div className="admin-controls-bar">
         <h2>
-          Chair {selectedChair}: {chairs[selectedChair].stageLabel} Links
+          Chair {selectedChair}: {chairs[selectedChair].stageLabel}
         </h2>
         <button
           type="button"
@@ -420,6 +522,85 @@ export function AdminDashboard({
           Preview Chair {selectedChair} Page
         </button>
       </div>
+
+      {/* Per-Chair Next-Steps Email Contact Configuration */}
+      <section
+        className="admin-contact-card"
+        aria-labelledby="contact-panel-heading"
+      >
+        <div className="admin-contact-header">
+          <h3 id="contact-panel-heading">
+            Next-Steps Email Contact for Chair {selectedChair}
+          </h3>
+          <p className="admin-contact-desc">
+            Configure the church leader who receives participant next-step
+            requests for Chair {selectedChair} ({chairs[selectedChair].stageLabel}).
+          </p>
+        </div>
+
+        {contactStatusMessage && (
+          <div
+            className={`status-message ${
+              contactStatusMessage.type === "error"
+                ? "admin-error-message"
+                : "admin-success-message"
+            }`}
+            role="status"
+          >
+            {contactStatusMessage.text}
+          </div>
+        )}
+
+        <form onSubmit={handleSaveContact} className="admin-form">
+          <div className="admin-form-group">
+            <label htmlFor={`contact-email-${selectedChair}`}>
+              Recipient Leader Email *
+            </label>
+            <input
+              id={`contact-email-${selectedChair}`}
+              type="email"
+              required
+              placeholder="leader@ocupc.com"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="admin-form-group">
+            <label htmlFor={`contact-name-${selectedChair}`}>
+              Leader Name / Role (Optional)
+            </label>
+            <input
+              id={`contact-name-${selectedChair}`}
+              type="text"
+              placeholder="e.g. Pastor John / Discipleship Team"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+            />
+          </div>
+
+          <div className="admin-checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={contactIsEnabled}
+                onChange={(e) => setContactIsEnabled(e.target.checked)}
+              />{" "}
+              Enable participant next-steps outreach for Chair {selectedChair}
+            </label>
+          </div>
+
+          <div className="admin-action-row">
+            <button
+              type="submit"
+              className="button button-primary admin-btn-sm"
+              disabled={isSavingContact}
+            >
+              {isSavingContact ? "Saving Contact..." : "Save Contact Settings"}
+            </button>
+          </div>
+        </form>
+      </section>
 
       {loading && <p className="helper-copy">Updating links...</p>}
 
