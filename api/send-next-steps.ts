@@ -1,5 +1,3 @@
-import { isValidEmail } from "../src/types/chairContacts";
-
 declare const process: { env: Record<string, string | undefined> };
 
 const CHAIR_STAGES: Record<number, string> = {
@@ -24,6 +22,14 @@ export interface ProcessResult {
     ok: boolean;
     error?: string;
   };
+}
+
+function isValidEmail(email: unknown): boolean {
+  return (
+    typeof email === "string" &&
+    email.trim().length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  );
 }
 
 export async function processNextStepsSubmission(
