@@ -75,8 +75,7 @@ export function AdminLogin({ onBackToAssessment, onSuccess }: AdminLoginProps) {
         ) : (
           <form className="admin-form" onSubmit={handleSubmit} noValidate>
             <p className="intro-copy">
-              Sign in with your leadership credentials to edit Small Groups and
-              Resources.
+              Sign in with your leadership credentials.
             </p>
 
             {errorMessage && (

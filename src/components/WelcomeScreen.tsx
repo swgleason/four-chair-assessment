@@ -63,7 +63,7 @@ export function WelcomeScreen({
               className="admin-entry-button"
               onClick={onOpenAdmin}
             >
-              Manage Chair Links (Admin)
+              Admin Login
             </button>
           </div>
         )}
