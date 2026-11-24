@@ -98,7 +98,7 @@ function hasAnswersThrough(
   return true;
 }
 
-function isProgress(value: unknown): value is AssessmentProgress {
+export function isAssessmentProgress(value: unknown): value is AssessmentProgress {
   if (!isRecord(value)) return false;
 
   const { currentQuestion, completed, answers, updatedAt } = value;
@@ -126,6 +126,10 @@ function isProgress(value: unknown): value is AssessmentProgress {
   }
 
   return value.destination === null && hasEarlierAnswers(answers, currentQuestion);
+}
+
+function isProgress(value: unknown): value is AssessmentProgress {
+  return isAssessmentProgress(value);
 }
 
 function isLegacyProgress(value: unknown): value is LegacyProgress {

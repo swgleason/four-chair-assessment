@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { AssessmentScreen } from "./components/AssessmentScreen";
 import { ChairScreen } from "./components/ChairScreen";
@@ -14,6 +14,12 @@ import {
 import { answerAndAdvance } from "./lib/assessmentFlow";
 import { resultProgressPercent } from "./lib/scoring";
 import { useParticipantAuth } from "./hooks/useParticipantAuth";
+import type { ParticipantUser } from "./lib/participantAuth";
+import {
+  saveCompletedAssessment,
+  saveInProgressState,
+  syncGuestProgressToAccount,
+} from "./lib/participantTrackingService";
 
 type Screen = "welcome" | "assessment" | "result";
 
@@ -35,6 +41,61 @@ export default function App() {
 
   // Optional participant auth — does not block or gate the guest flow
   const { participant, signOut } = useParticipantAuth();
+
+  // Guest-to-account handoff and cross-device in-progress sync
+  const syncedUserIdRef = useRef<string | null>(null);
+
+  async function handleAuthenticated(user: ParticipantUser) {
+    syncedUserIdRef.current = user.id;
+    const currentLocal = progress || savedProgress || readProgress().progress;
+    const effective = await syncGuestProgressToAccount(user, currentLocal);
+    if (effective) {
+      persist(effective);
+      if (effective.completed) {
+        if (screen === "result") {
+          setProgress(effective);
+        }
+      } else {
+        if (screen === "assessment") {
+          setProgress(effective);
+        }
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!participant) {
+      syncedUserIdRef.current = null;
+      return;
+    }
+    if (syncedUserIdRef.current === participant.id) {
+      return;
+    }
+    syncedUserIdRef.current = participant.id;
+
+    let isMounted = true;
+    const currentLocal = progress || savedProgress || readProgress().progress;
+
+    syncGuestProgressToAccount(participant, currentLocal).then((effective) => {
+      if (!isMounted) return;
+      if (effective) {
+        persist(effective);
+        if (effective.completed) {
+          if (screen === "result") {
+            setProgress(effective);
+          }
+        } else {
+          if (screen === "assessment") {
+            setProgress(effective);
+          }
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [participant, progress, savedProgress, screen]);
 
   useEffect(() => {
     function handleLocationChange() {
@@ -83,6 +144,9 @@ export default function App() {
     setSavedProgress(null);
     setNotice("");
     setScreen("assessment");
+    if (participant) {
+      void saveInProgressState(participant.id, freshProgress, participant);
+    }
   }
 
   function continueAssessment() {
@@ -112,18 +176,42 @@ export default function App() {
     setSavedProgress(null);
     setNotice("");
     setScreen("assessment");
+    if (participant) {
+      void saveInProgressState(participant.id, null, participant);
+    }
   }
 
   function answerQuestion(questionId: number, answer: AnswerChoice) {
     if (!progress) return;
     const transition = answerAndAdvance(progress, questionId, answer);
     persist(transition.progress);
-    if (transition.completed) setScreen("result");
+    if (transition.completed) {
+      setScreen("result");
+      if (participant) {
+        void saveCompletedAssessment(
+          participant.id,
+          transition.progress,
+          participant,
+        );
+      }
+    } else {
+      if (participant) {
+        void saveInProgressState(
+          participant.id,
+          transition.progress,
+          participant,
+        );
+      }
+    }
   }
 
   function goBack() {
     if (!progress || progress.currentQuestion <= 1) return;
-    persist({ ...progress, currentQuestion: progress.currentQuestion - 1 });
+    const next = { ...progress, currentQuestion: progress.currentQuestion - 1 };
+    persist(next);
+    if (participant) {
+      void saveInProgressState(participant.id, next, participant);
+    }
   }
 
   if (isAdmin) {
@@ -141,6 +229,7 @@ export default function App() {
         onOpenAdmin={navigateToAdmin}
         participant={participant}
         onSignOut={signOut}
+        onAuthenticated={handleAuthenticated}
       />
     );
   }
@@ -174,6 +263,7 @@ export default function App() {
         onStartOver={startOver}
         participant={participant}
         onSignOut={signOut}
+        onAuthenticated={handleAuthenticated}
       />
     );
   }
@@ -188,6 +278,7 @@ export default function App() {
       onOpenAdmin={navigateToAdmin}
       participant={participant}
       onSignOut={signOut}
+      onAuthenticated={handleAuthenticated}
     />
   );
 }

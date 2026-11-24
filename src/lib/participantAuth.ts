@@ -6,6 +6,7 @@
  * and will be implemented in the next step.
  */
 import { supabase } from "./supabaseClient";
+import { saveInProgressState } from "./participantTrackingService";
 
 export interface ParticipantUser {
   id: string;
@@ -125,25 +126,11 @@ export async function signOutParticipant(): Promise<void> {
 }
 
 /**
- * Upserts the participant_chair_states row for the given user.
- * Stubbed: only sets email/display_name, no progress sync yet.
- * This is intentionally a no-op when Supabase is not configured.
+ * Ensures a participant_chair_states row exists for the given user.
+ * Preserves existing chair states and timestamps.
  */
 export async function upsertParticipantState(user: ParticipantUser): Promise<void> {
-  if (!supabase) return;
-  try {
-    await supabase.from("participant_chair_states").upsert(
-      {
-        user_id: user.id,
-        email: user.email,
-        display_name: user.displayName,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id", ignoreDuplicates: false },
-    );
-  } catch {
-    // Best-effort; never block the UI on this
-  }
+  await saveInProgressState(user.id, null, user);
 }
 
 /**

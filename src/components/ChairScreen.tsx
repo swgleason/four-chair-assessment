@@ -348,6 +348,27 @@ export function ChairScreen({
             </section>
           )}
 
+          {/* Signed-in account status */}
+          {supportsAuth && participant && (
+            <div className="participant-auth-bar">
+              <div className="participant-signed-in">
+                <span className="participant-signed-in-name">
+                  Signed in as{" "}
+                  <strong>{participant.displayName ?? participant.email}</strong> (results saved to your account)
+                </span>
+                {onSignOut && (
+                  <button
+                    type="button"
+                    className="auth-toggle-link"
+                    onClick={onSignOut}
+                  >
+                    Sign out
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Connect About Your Next Steps */}
           {!disableNextStepsForm && (
             <section
