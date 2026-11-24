@@ -6,6 +6,7 @@ import { ParticipantAuthModal } from "./ParticipantAuthModal";
 import { WelcomeScreen } from "./WelcomeScreen";
 import type { ChairLinkItem } from "../types/chairLinks";
 import type { ChairContact } from "../types/chairContacts";
+import type { ParticipantChairState } from "../types/participantTracking";
 
 describe("AdminLogin", () => {
   it("renders login card with email and password inputs or setup instructions", () => {
@@ -204,6 +205,179 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("Back to Assessment");
     // Must NOT show the admin dashboard content
     expect(markup).not.toContain("Chair Links Manager");
+  });
+
+  const sampleParticipants: ParticipantChairState[] = [
+    {
+      userId: "user-1",
+      email: "alice@example.com",
+      displayName: "Alice Walker",
+      currentChair: 3,
+      currentChairUpdatedAt: new Date("2026-11-20T12:00:00.000Z"),
+      chair1LastAt: new Date("2026-09-01T10:00:00.000Z"),
+      chair2LastAt: new Date("2026-10-15T11:00:00.000Z"),
+      chair3LastAt: new Date("2026-11-20T12:00:00.000Z"),
+      chair4LastAt: null,
+      inProgressState: null,
+      updatedAt: new Date("2026-11-20T12:00:00.000Z"),
+    },
+    {
+      userId: "user-2",
+      email: "bob@example.com",
+      displayName: null,
+      currentChair: 1,
+      currentChairUpdatedAt: new Date("2026-11-22T09:00:00.000Z"),
+      chair1LastAt: new Date("2026-11-22T09:00:00.000Z"),
+      chair2LastAt: null,
+      chair3LastAt: null,
+      chair4LastAt: null,
+      inProgressState: null,
+      updatedAt: new Date("2026-11-22T09:00:00.000Z"),
+    },
+    {
+      userId: "user-3",
+      email: "carol@example.com",
+      displayName: "Carol Danvers",
+      currentChair: null,
+      currentChairUpdatedAt: null,
+      chair1LastAt: null,
+      chair2LastAt: null,
+      chair3LastAt: null,
+      chair4LastAt: null,
+      inProgressState: { version: 2, currentQuestion: 3 },
+      updatedAt: new Date("2026-11-23T08:00:00.000Z"),
+    },
+  ];
+
+  it("renders participant roster view with participant display names, emails, current chairs, and visited chairs sorted most-recent-to-least-recent with timestamps", () => {
+    const markup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+      />,
+    );
+
+    // Section title
+    expect(markup).toContain("Participant Roster");
+
+    // Alice Walker
+    expect(markup).toContain("Alice Walker");
+    expect(markup).toContain("alice@example.com");
+    expect(markup).toContain("Chair 3: The Worker");
+    // Alice visited chairs in order: Chair 3 (current), Chair 2, Chair 1
+    expect(markup).toContain("Visited Chairs (Most to Least Recent)");
+    expect(markup).toContain("Chair 3: The Worker");
+    expect(markup).toContain("Current");
+    expect(markup).toContain("Chair 2: The Believer");
+    expect(markup).toContain("Chair 1: The Seeker");
+    expect(markup).toContain("2026-11-20 12:00 UTC");
+    expect(markup).toContain("2026-10-15 11:00 UTC");
+    expect(markup).toContain("2026-09-01 10:00 UTC");
+
+    // Bob with email fallback as display name
+    expect(markup).toContain("bob@example.com");
+    expect(markup).toContain("Chair 1: The Seeker");
+    expect(markup).toContain("2026-11-22 09:00 UTC");
+
+    // Carol Danvers with in-progress state
+    expect(markup).toContain("Carol Danvers");
+    expect(markup).toContain("carol@example.com");
+    expect(markup).toContain("In Progress / Not Yet Completed");
+    expect(markup).toContain("No chair assessments completed yet.");
+  });
+
+  it("filters participant roster by search query (name and email)", () => {
+    // Search by name
+    const aliceMarkup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+        initialSearchQuery="Alice"
+      />,
+    );
+    expect(aliceMarkup).toContain("Alice Walker");
+    expect(aliceMarkup).not.toContain("bob@example.com");
+    expect(aliceMarkup).not.toContain("Carol Danvers");
+
+    // Search by email
+    const bobMarkup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+        initialSearchQuery="bob@example.com"
+      />,
+    );
+    expect(bobMarkup).toContain("bob@example.com");
+    expect(bobMarkup).not.toContain("Alice Walker");
+    expect(bobMarkup).not.toContain("Carol Danvers");
+  });
+
+  it("filters participant roster by current chair", () => {
+    // Filter by Chair 3
+    const chair3Markup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+        initialChairFilter="3"
+      />,
+    );
+    expect(chair3Markup).toContain("Alice Walker");
+    expect(chair3Markup).not.toContain("bob@example.com");
+    expect(chair3Markup).not.toContain("Carol Danvers");
+
+    // Filter by None / In Progress
+    const noneMarkup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+        initialChairFilter="none"
+      />,
+    );
+    expect(noneMarkup).toContain("Carol Danvers");
+    expect(noneMarkup).toContain("In Progress / Not Yet Completed");
+    expect(noneMarkup).not.toContain("Alice Walker");
+    expect(noneMarkup).not.toContain("bob@example.com");
+
+    // Filter by Chair 4 (no matches)
+    const chair4Markup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants}
+        initialChairFilter="4"
+      />,
+    );
+    expect(chair4Markup).toContain("No participants match your search or filter.");
+  });
+
+  it("displays empty note when no participant accounts exist", () => {
+    const emptyMarkup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={[]}
+      />,
+    );
+    expect(emptyMarkup).toContain("No participant accounts registered yet.");
   });
 });
 

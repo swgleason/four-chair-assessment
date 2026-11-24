@@ -2,6 +2,7 @@ import { isAssessmentProgress, type AssessmentProgress } from "./progressStorage
 import { supabase } from "./supabaseClient";
 import {
   mapRowToParticipantChairState,
+  validateParticipantChairStateRow,
   type ParticipantChairState,
   type ParticipantChairStateRow,
 } from "../types/participantTracking";
@@ -369,5 +370,26 @@ export async function syncGuestProgressToAccount(
     return effectiveProgress;
   } catch {
     return localProgress;
+  }
+}
+
+/**
+ * Fetches all participant chair states from `public.participant_chair_states`.
+ * Accessible only to leaders with `is_admin()` authorization via Supabase RLS.
+ */
+export async function fetchAllParticipantChairStates(): Promise<ParticipantChairState[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("participant_chair_states")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error || !data) return [];
+    return (data as unknown[])
+      .filter(validateParticipantChairStateRow)
+      .map(mapRowToParticipantChairState);
+  } catch {
+    return [];
   }
 }

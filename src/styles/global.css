@@ -1174,3 +1174,234 @@ h3 {
   font-size: 0.8125rem;
   color: var(--color-muted);
 }
+
+/* Admin Main Navigation (Chair Links vs Participant Roster) */
+.admin-main-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.admin-nav-button {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.admin-nav-button:hover {
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+.admin-nav-button.is-active {
+  color: #fff;
+  background: var(--color-accent);
+}
+
+/* Participant Roster Styles */
+.admin-roster-section {
+  margin-top: 1.5rem;
+}
+
+.admin-roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-roster-titles h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  color: var(--color-ink);
+}
+
+.admin-roster-subtitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-muted);
+}
+
+.admin-roster-count-badge {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2rem;
+  color: var(--color-muted);
+}
+
+.admin-roster-controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  background: var(--color-surface);
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.admin-roster-search,
+.admin-roster-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.admin-roster-search label,
+.admin-roster-filter label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.admin-roster-search input,
+.admin-roster-filter select {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  background: #fff;
+  color: var(--color-ink);
+}
+
+.admin-roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-roster-card {
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-roster-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-roster-user-name {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  color: var(--color-ink);
+}
+
+.admin-roster-user-email {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.admin-roster-current-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-roster-status-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.admin-roster-chair-badge {
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+
+.admin-roster-chair-badge.chair-none {
+  background: #f1f3f5;
+  color: #495057;
+  border-color: #ced4da;
+}
+
+.admin-roster-history {
+  margin-top: 1rem;
+}
+
+.admin-roster-history-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.admin-roster-no-history {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.admin-roster-visited-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-roster-visited-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.35rem;
+  background: var(--color-surface);
+}
+
+.admin-roster-visited-item.is-current {
+  background: var(--color-accent-soft);
+  font-weight: 600;
+}
+
+.admin-roster-visited-chair {
+  color: var(--color-ink);
+}
+
+.admin-roster-current-pill {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 1rem;
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.admin-roster-visited-time {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}

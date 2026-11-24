@@ -12,6 +12,7 @@ import {
   updateChairLink,
 } from "../lib/chairLinksService";
 import { checkIsAdmin } from "../lib/participantAuth";
+import { fetchAllParticipantChairStates } from "../lib/participantTrackingService";
 import type { ChairNumber } from "../lib/scoring";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import type { ChairContact } from "../types/chairContacts";
@@ -21,20 +22,34 @@ import {
   type ChairLinkItem,
   type LinkCategory,
 } from "../types/chairLinks";
+import {
+  getVisitedChairsSorted,
+  type ParticipantChairState,
+} from "../types/participantTracking";
 import { AdminLogin } from "./AdminLogin";
 import { ChairScreen } from "./ChairScreen";
 
 const ALL_CHAIRS: readonly ChairNumber[] = [1, 2, 3, 4];
+
+function formatRosterTimestamp(date: Date): string {
+  const iso = date.toISOString();
+  return iso.replace("T", " ").slice(0, 16) + " UTC";
+}
 
 export interface AdminDashboardProps {
   onExitAdmin: () => void;
   initialSession?: any;
   initialLinks?: ChairLinkItem[];
   initialContacts?: ChairContact[];
+  initialParticipants?: ParticipantChairState[];
   initialSelectedChair?: ChairNumber;
   initialPreviewing?: boolean;
   /** Force admin status (for tests); if undefined, determined via is_admin() RPC */
   initialIsAdmin?: boolean;
+  /** Active view: Chair Links Manager vs. Participant Roster */
+  initialView?: "links" | "participants";
+  initialSearchQuery?: string;
+  initialChairFilter?: "all" | "none" | "1" | "2" | "3" | "4";
 }
 
 export function AdminDashboard({
@@ -42,10 +57,23 @@ export function AdminDashboard({
   initialSession,
   initialLinks,
   initialContacts,
+  initialParticipants,
   initialSelectedChair = 1,
   initialPreviewing = false,
   initialIsAdmin,
+  initialView = "links",
+  initialSearchQuery = "",
+  initialChairFilter = "all",
 }: AdminDashboardProps) {
+  const [adminView, setAdminView] = useState<"links" | "participants">(initialView);
+  const [participants, setParticipants] = useState<ParticipantChairState[]>(
+    initialParticipants ?? [],
+  );
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [chairFilter, setChairFilter] = useState<
+    "all" | "none" | "1" | "2" | "3" | "4"
+  >(initialChairFilter);
   const [session, setSession] = useState<any>(initialSession ?? null);
   const [authChecking, setAuthChecking] = useState(
     initialSession === undefined && isSupabaseConfigured && Boolean(supabase),
@@ -199,6 +227,25 @@ export function AdminDashboard({
     }
   }
 
+  async function loadParticipants() {
+    if (!isSupabaseConfigured || !supabase) return;
+    setLoadingParticipants(true);
+    try {
+      const data = await fetchAllParticipantChairStates();
+      setParticipants(data);
+    } catch (err) {
+      setStatusMessage({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Failed to load participants from Supabase.",
+      });
+    } finally {
+      setLoadingParticipants(false);
+    }
+  }
+
   useEffect(() => {
     if (session && initialLinks === undefined) {
       loadLinks();
@@ -206,7 +253,10 @@ export function AdminDashboard({
     if (session && initialContacts === undefined) {
       loadContacts();
     }
-  }, [session, initialLinks, initialContacts]);
+    if (session && initialParticipants === undefined) {
+      loadParticipants();
+    }
+  }, [session, initialLinks, initialContacts, initialParticipants]);
 
   // Sync active contact form with selected chair
   useEffect(() => {
@@ -509,6 +559,20 @@ export function AdminDashboard({
     );
   }
 
+  const filteredParticipants = participants.filter((p) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query === "" ||
+      (p.displayName !== null && p.displayName.toLowerCase().includes(query)) ||
+      p.email.toLowerCase().includes(query);
+
+    if (!matchesSearch) return false;
+
+    if (chairFilter === "all") return true;
+    if (chairFilter === "none") return p.currentChair === null;
+    return p.currentChair === Number(chairFilter);
+  });
+
   return (
     <main className="page-shell admin-shell">
       {/* Admin Header */}
@@ -519,7 +583,9 @@ export function AdminDashboard({
             src="/ocupc-logo.png"
             alt="Oregon City United Pentecostal Church"
           />
-          <h1 className="admin-heading">Chair Links Manager</h1>
+          <h1 className="admin-heading">
+            {adminView === "participants" ? "Participant Roster" : "Chair Links Manager"}
+          </h1>
         </div>
         <div className="admin-user-bar">
           <span className="admin-user-email">
@@ -544,6 +610,24 @@ export function AdminDashboard({
         </div>
       </header>
 
+      {/* Main View Navigation Tabs */}
+      <nav className="admin-main-nav" aria-label="Admin Navigation Tabs">
+        <button
+          type="button"
+          className={`admin-nav-button ${adminView === "links" ? "is-active" : ""}`}
+          onClick={() => setAdminView("links")}
+        >
+          Chair Links Manager
+        </button>
+        <button
+          type="button"
+          className={`admin-nav-button ${adminView === "participants" ? "is-active" : ""}`}
+          onClick={() => setAdminView("participants")}
+        >
+          Participant Roster
+        </button>
+      </nav>
+
       {/* Global Status Message */}
       {statusMessage && (
         <div
@@ -553,6 +637,136 @@ export function AdminDashboard({
           {statusMessage.text}
         </div>
       )}
+
+      {adminView === "participants" ? (
+        <section className="admin-roster-section" aria-labelledby="roster-heading">
+          <div className="admin-roster-header">
+            <div className="admin-roster-titles">
+              <h2 id="roster-heading">Participant Roster</h2>
+              <p className="admin-roster-subtitle">
+                View all registered participants, their current chair status, and complete chair assessment history.
+              </p>
+            </div>
+            <div className="admin-roster-count-badge">
+              {filteredParticipants.length} of {participants.length}{" "}
+              {participants.length === 1 ? "participant" : "participants"}
+            </div>
+          </div>
+
+          {/* Roster Controls: Search & Chair Filter */}
+          <div className="admin-roster-controls">
+            <div className="admin-roster-search">
+              <label htmlFor="roster-search">Search by Name or Email</label>
+              <input
+                id="roster-search"
+                type="search"
+                placeholder="Search participants..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="admin-roster-filter">
+              <label htmlFor="roster-chair-filter">Filter by Current Chair</label>
+              <select
+                id="roster-chair-filter"
+                value={chairFilter}
+                onChange={(e) =>
+                  setChairFilter(e.target.value as "all" | "none" | "1" | "2" | "3" | "4")
+                }
+              >
+                <option value="all">All Chairs</option>
+                <option value="1">Chair 1: {chairs[1].stageLabel}</option>
+                <option value="2">Chair 2: {chairs[2].stageLabel}</option>
+                <option value="3">Chair 3: {chairs[3].stageLabel}</option>
+                <option value="4">Chair 4: {chairs[4].stageLabel}</option>
+                <option value="none">None / In Progress</option>
+              </select>
+            </div>
+          </div>
+
+          {loadingParticipants ? (
+            <p className="helper-copy">Loading participants...</p>
+          ) : filteredParticipants.length === 0 ? (
+            <p className="admin-empty-note">
+              {participants.length === 0
+                ? "No participant accounts registered yet."
+                : "No participants match your search or filter."}
+            </p>
+          ) : (
+            <div className="admin-roster-list">
+              {filteredParticipants.map((p) => {
+                const visited = getVisitedChairsSorted(p);
+                const displayName = p.displayName?.trim() || p.email;
+                const currentChairLabel =
+                  p.currentChair !== null
+                    ? `Chair ${p.currentChair}: ${chairs[p.currentChair].stageLabel}`
+                    : "In Progress / Not Yet Completed";
+
+                return (
+                  <article className="admin-roster-card" key={p.userId}>
+                    <header className="admin-roster-card-header">
+                      <div className="admin-roster-user-info">
+                        <h3 className="admin-roster-user-name">{displayName}</h3>
+                        <span className="admin-roster-user-email">{p.email}</span>
+                      </div>
+                      <div className="admin-roster-current-status">
+                        <span className="admin-roster-status-label">Current Chair:</span>
+                        <span
+                          className={`admin-roster-chair-badge ${
+                            p.currentChair !== null ? `chair-${p.currentChair}` : "chair-none"
+                          }`}
+                        >
+                          {currentChairLabel}
+                        </span>
+                      </div>
+                    </header>
+
+                    <div className="admin-roster-history">
+                      <h4 className="admin-roster-history-title">
+                        Visited Chairs (Most to Least Recent)
+                      </h4>
+                      {visited.length === 0 ? (
+                        <p className="admin-roster-no-history">
+                          No chair assessments completed yet.
+                        </p>
+                      ) : (
+                        <ol className="admin-roster-visited-list">
+                          {visited.map((v) => {
+                            const stage = chairs[v.chair];
+                            return (
+                              <li
+                                key={v.chair}
+                                className={`admin-roster-visited-item ${
+                                  v.isCurrent ? "is-current" : ""
+                                }`}
+                              >
+                                <span className="admin-roster-visited-chair">
+                                  Chair {v.chair}: {stage.stageLabel}
+                                </span>
+                                {v.isCurrent && (
+                                  <span className="admin-roster-current-pill">Current</span>
+                                )}
+                                <time
+                                  className="admin-roster-visited-time"
+                                  dateTime={v.lastAt.toISOString()}
+                                >
+                                  {formatRosterTimestamp(v.lastAt)}
+                                </time>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : (
+        <>
 
       {/* Chair Selector Tabs */}
       <nav
@@ -1096,6 +1310,8 @@ export function AdminDashboard({
           )}
         </section>
       </div>
+      </>
+      )}
     </main>
   );
 }
