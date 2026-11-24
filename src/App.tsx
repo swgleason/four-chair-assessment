@@ -13,6 +13,7 @@ import {
 } from "./lib/progressStorage";
 import { answerAndAdvance } from "./lib/assessmentFlow";
 import { resultProgressPercent } from "./lib/scoring";
+import { useParticipantAuth } from "./hooks/useParticipantAuth";
 
 type Screen = "welcome" | "assessment" | "result";
 
@@ -31,6 +32,9 @@ export default function App() {
   const [savedProgress, setSavedProgress] = useState(initialRead.progress);
   const [progress, setProgress] = useState<AssessmentProgress | null>(null);
   const [notice, setNotice] = useState(initialRead.error ?? "");
+
+  // Optional participant auth — does not block or gate the guest flow
+  const { participant, signOut } = useParticipantAuth();
 
   useEffect(() => {
     function handleLocationChange() {
@@ -135,6 +139,8 @@ export default function App() {
         onContinue={continueAssessment}
         onStartOver={startOver}
         onOpenAdmin={navigateToAdmin}
+        participant={participant}
+        onSignOut={signOut}
       />
     );
   }
@@ -166,6 +172,8 @@ export default function App() {
         segmentProgressPercent={segmentProgressPercent}
         notice={notice}
         onStartOver={startOver}
+        participant={participant}
+        onSignOut={signOut}
       />
     );
   }
@@ -178,6 +186,8 @@ export default function App() {
       onContinue={continueAssessment}
       onStartOver={startOver}
       onOpenAdmin={navigateToAdmin}
+      participant={participant}
+      onSignOut={signOut}
     />
   );
 }

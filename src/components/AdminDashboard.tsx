@@ -11,6 +11,7 @@ import {
   reorderChairLinks,
   updateChairLink,
 } from "../lib/chairLinksService";
+import { checkIsAdmin } from "../lib/participantAuth";
 import type { ChairNumber } from "../lib/scoring";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import type { ChairContact } from "../types/chairContacts";
@@ -32,6 +33,8 @@ export interface AdminDashboardProps {
   initialContacts?: ChairContact[];
   initialSelectedChair?: ChairNumber;
   initialPreviewing?: boolean;
+  /** Force admin status (for tests); if undefined, determined via is_admin() RPC */
+  initialIsAdmin?: boolean;
 }
 
 export function AdminDashboard({
@@ -41,11 +44,17 @@ export function AdminDashboard({
   initialContacts,
   initialSelectedChair = 1,
   initialPreviewing = false,
+  initialIsAdmin,
 }: AdminDashboardProps) {
   const [session, setSession] = useState<any>(initialSession ?? null);
   const [authChecking, setAuthChecking] = useState(
     initialSession === undefined && isSupabaseConfigured && Boolean(supabase),
   );
+  /**
+   * undefined = not yet checked, true/false = result of is_admin() RPC.
+   * When initialIsAdmin is provided (tests), skip the RPC call.
+   */
+  const [isAdmin, setIsAdmin] = useState<boolean | undefined>(initialIsAdmin);
   const [selectedChair, setSelectedChair] =
     useState<ChairNumber>(initialSelectedChair);
   const [links, setLinks] = useState<ChairLinkItem[]>(initialLinks ?? []);
@@ -111,7 +120,7 @@ export function AdminDashboard({
   const [newResourceUrl, setNewResourceUrl] = useState("");
   const [isAddingResource, setIsAddingResource] = useState(false);
 
-  // Check auth session
+  // Check auth session, then verify admin status via is_admin() RPC
   useEffect(() => {
     if (initialSession !== undefined || !isSupabaseConfigured || !supabase) {
       setAuthChecking(false);
@@ -119,18 +128,33 @@ export function AdminDashboard({
     }
 
     let isMounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (isMounted) {
-        setSession(data.session);
-        setAuthChecking(false);
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!isMounted) return;
+      const sess = data.session;
+      setSession(sess);
+
+      // If a session exists, check whether this user is actually an admin.
+      // initialIsAdmin overrides the RPC (used in tests).
+      if (sess && initialIsAdmin === undefined) {
+        const admin = await checkIsAdmin();
+        if (isMounted) setIsAdmin(admin);
+      } else if (!sess) {
+        if (isMounted) setIsAdmin(undefined);
       }
+      if (isMounted) setAuthChecking(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (isMounted) {
-        setSession(newSession);
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+      if (newSession && initialIsAdmin === undefined) {
+        const admin = await checkIsAdmin();
+        if (isMounted) setIsAdmin(admin);
+      } else if (!newSession) {
+        if (isMounted) setIsAdmin(undefined);
       }
     });
 
@@ -138,6 +162,7 @@ export function AdminDashboard({
       isMounted = false;
       subscription.unsubscribe();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSession]);
 
   // Load links and contacts on mount and when authenticated
@@ -404,6 +429,55 @@ export function AdminDashboard({
           }
         }}
       />
+    );
+  }
+
+  // A session exists but the is_admin() check is still in-flight
+  if (isAdmin === undefined && session) {
+    return (
+      <main className="page-shell">
+        <section className="welcome-card">
+          <p className="intro-copy">Verifying admin privileges...</p>
+        </section>
+      </main>
+    );
+  }
+
+  // Signed in but NOT an admin — deny access clearly
+  if (isAdmin === false) {
+    return (
+      <main className="page-shell">
+        <section className="welcome-card" aria-labelledby="not-admin-title">
+          <p className="eyebrow">Access Denied</p>
+          <h1 id="not-admin-title">Admin Access Required</h1>
+          <p className="intro-copy">
+            You are signed in as{" "}
+            <strong>{session.user?.email}</strong>, but this account does not
+            have leadership admin privileges. Please sign in with a designated
+            leader account, or return to the assessment.
+          </p>
+          <div className="action-stack">
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={async () => {
+                if (supabase) await supabase.auth.signOut();
+                setSession(null);
+                setIsAdmin(undefined);
+              }}
+            >
+              Sign Out
+            </button>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={onExitAdmin}
+            >
+              Back to Assessment
+            </button>
+          </div>
+        </section>
+      </main>
     );
   }
 

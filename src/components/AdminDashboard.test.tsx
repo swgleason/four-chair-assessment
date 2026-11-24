@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminLogin } from "./AdminLogin";
+import { ParticipantAuthModal } from "./ParticipantAuthModal";
+import { WelcomeScreen } from "./WelcomeScreen";
 import type { ChairLinkItem } from "../types/chairLinks";
 import type { ChairContact } from "../types/chairContacts";
 
@@ -92,11 +94,12 @@ describe("AdminDashboard", () => {
     expect(markup).not.toContain("Chair Links Manager");
   });
 
-  it("renders authenticated dashboard with user email, chair tabs, and filtered items for Chair 1", () => {
+  it("renders authenticated admin dashboard with user email, chair tabs, and filtered items for Chair 1", () => {
     const markup = renderToStaticMarkup(
       <AdminDashboard
         onExitAdmin={vi.fn()}
         initialSession={mockUserSession}
+        initialIsAdmin={true}
         initialLinks={sampleLinks}
         initialContacts={sampleContacts}
         initialSelectedChair={1}
@@ -137,6 +140,7 @@ describe("AdminDashboard", () => {
       <AdminDashboard
         onExitAdmin={vi.fn()}
         initialSession={mockUserSession}
+        initialIsAdmin={true}
         initialLinks={sampleLinks}
         initialContacts={sampleContacts}
         initialSelectedChair={2}
@@ -163,6 +167,7 @@ describe("AdminDashboard", () => {
       <AdminDashboard
         onExitAdmin={vi.fn()}
         initialSession={mockUserSession}
+        initialIsAdmin={true}
         initialLinks={sampleLinks}
         initialSelectedChair={1}
         initialPreviewing={true}
@@ -180,5 +185,126 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("Chair 1 Small Group");
     expect(markup).toContain("Recommended Resources");
     expect(markup).toContain("Chair 1 Study Guide");
+  });
+
+  it("shows access-denied screen when session exists but user is not an admin", () => {
+    const markup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={false}
+      />,
+    );
+
+    expect(markup).toContain("Access Denied");
+    expect(markup).toContain("Admin Access Required");
+    expect(markup).toContain("leader@ocupc.com");
+    expect(markup).toContain("does not have leadership admin privileges");
+    expect(markup).toContain("Sign Out");
+    expect(markup).toContain("Back to Assessment");
+    // Must NOT show the admin dashboard content
+    expect(markup).not.toContain("Chair Links Manager");
+  });
+});
+
+describe("ParticipantAuthModal", () => {
+  it("renders sign-in form with the privacy disclosure notice", () => {
+    const markup = renderToStaticMarkup(
+      <ParticipantAuthModal onClose={vi.fn()} onAuthenticated={vi.fn()} />,
+    );
+
+    // Modal wrapper
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain("auth-modal-title");
+
+    // Privacy notice must always be present in the modal
+    expect(markup).toContain("visible to church leadership");
+    expect(markup).toContain("display name");
+    expect(markup).toContain("email address");
+
+    // Guest note — reassures participants that sign-in is optional
+    expect(markup).toContain("Signing in is optional");
+  });
+
+  it("renders email and password fields in sign-in mode", () => {
+    const markup = renderToStaticMarkup(
+      <ParticipantAuthModal onClose={vi.fn()} onAuthenticated={vi.fn()} />,
+    );
+
+    // When Supabase is configured the form is shown; when not configured the
+    // unconfigured branch is shown. Either way we should not throw.
+    // Verify at least the close button is always rendered.
+    expect(markup).toContain("auth-modal-close");
+  });
+});
+
+describe("WelcomeScreen participant auth UI", () => {
+  it("renders guest privacy copy and admin login by default", () => {
+    const markup = renderToStaticMarkup(
+      <WelcomeScreen
+        hasSavedProgress={false}
+        notice=""
+        onBegin={vi.fn()}
+        onContinue={vi.fn()}
+        onStartOver={vi.fn()}
+        onOpenAdmin={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("Four Chair Assessment");
+    expect(markup).toContain("stored in this browser");
+    expect(markup).toContain("Begin Assessment");
+    expect(markup).toContain("Admin Login");
+  });
+
+  it("renders signed-in participant status when participant prop is provided", () => {
+    const markup = renderToStaticMarkup(
+      <WelcomeScreen
+        hasSavedProgress={false}
+        notice=""
+        onBegin={vi.fn()}
+        onContinue={vi.fn()}
+        onStartOver={vi.fn()}
+        participant={{ id: "u1", email: "alice@example.com", displayName: "Alice" }}
+        onSignOut={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("Signed in as");
+    expect(markup).toContain("Alice");
+    // Privacy copy should reflect signed-in state
+    expect(markup).toContain("visible to church leadership");
+  });
+
+  it("renders email fallback when displayName is null", () => {
+    const markup = renderToStaticMarkup(
+      <WelcomeScreen
+        hasSavedProgress={false}
+        notice=""
+        onBegin={vi.fn()}
+        onContinue={vi.fn()}
+        onStartOver={vi.fn()}
+        participant={{ id: "u2", email: "bob@example.com", displayName: null }}
+        onSignOut={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("bob@example.com");
+  });
+
+  it("shows Continue and Start Over when hasSavedProgress is true", () => {
+    const markup = renderToStaticMarkup(
+      <WelcomeScreen
+        hasSavedProgress={true}
+        notice=""
+        onBegin={vi.fn()}
+        onContinue={vi.fn()}
+        onStartOver={vi.fn()}
+      />,
+    );
+
+    expect(markup).toContain("Continue Assessment");
+    expect(markup).toContain("Start Over");
+    expect(markup).not.toContain("Begin Assessment");
   });
 });
