@@ -41,12 +41,23 @@ export function buildInProgressPayload(
  * Pure helper: builds the payload when an assessment is completed.
  * Sets `current_chair`, `current_chair_updated_at`, and the chair's `last_at`.
  * Clears `in_progress_state` to null.
+ *
+ * STRICT RULE:
+ * Only the destination chair's `chair_${N}_last_at` is included in the payload.
+ * Other chairs (whether lower or previously visited) are NEVER in the payload,
+ * ensuring database updates leave them untouched.
  */
 export function buildCompletedAssessmentPayload(
   progress: AssessmentProgress,
 ): Record<string, unknown> {
-  if (!progress.completed || progress.destination === null) {
-    throw new Error("Cannot record an incomplete assessment as completed.");
+  if (
+    !progress.completed ||
+    progress.destination === null ||
+    !Number.isInteger(progress.destination) ||
+    progress.destination < 1 ||
+    progress.destination > 4
+  ) {
+    throw new Error("Cannot record an incomplete or invalid assessment as completed.");
   }
   const chair = progress.destination as ChairNumber;
   const timestamp = progress.updatedAt || new Date().toISOString();
@@ -61,6 +72,36 @@ export function buildCompletedAssessmentPayload(
 }
 
 /**
+ * Pure helper: applies a completed assessment payload onto an existing row,
+ * simulating an in-place database UPDATE.
+ */
+export function applyCompletedAssessmentToRow(
+  currentRow: ParticipantChairStateRow,
+  progress: AssessmentProgress,
+): ParticipantChairStateRow {
+  const payload = buildCompletedAssessmentPayload(progress);
+  return {
+    ...currentRow,
+    ...payload,
+  } as ParticipantChairStateRow;
+}
+
+/**
+ * Pure helper: applies an in-progress payload onto an existing row,
+ * simulating an in-place database UPDATE for mid-assessment sync or restart.
+ */
+export function applyInProgressPayloadToRow(
+  currentRow: ParticipantChairStateRow,
+  progress: AssessmentProgress | null,
+): ParticipantChairStateRow {
+  const payload = buildInProgressPayload(progress);
+  return {
+    ...currentRow,
+    ...payload,
+  } as ParticipantChairStateRow;
+}
+
+/**
  * Pure helper: constructs a new row for `participant_chair_states` on first insertion.
  *
  * STRICT RULE:
@@ -69,8 +110,14 @@ export function buildCompletedAssessmentPayload(
 export function buildInitialParticipantRow(
   user: { id: string; email: string; displayName?: string | null },
   progress: AssessmentProgress | null,
-): Record<string, unknown> {
-  const isCompleted = Boolean(progress?.completed && progress?.destination !== null);
+): ParticipantChairStateRow {
+  const isCompleted = Boolean(
+    progress?.completed &&
+      progress?.destination !== null &&
+      Number.isInteger(progress?.destination) &&
+      progress.destination >= 1 &&
+      progress.destination <= 4,
+  );
 
   if (isCompleted && progress && progress.destination !== null) {
     const chair = progress.destination;
