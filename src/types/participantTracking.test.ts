@@ -132,6 +132,46 @@ describe("validateParticipantChairStateRow", () => {
       validateParticipantChairStateRow(makeRow({ chair_2_last_at: 12345 as unknown as string })),
     ).toBe(false);
   });
+
+  it("accepts null and omitted result fields for legacy rows", () => {
+    const withNulls = makeRow({
+      chair_score: null,
+      focus_responses: null,
+    });
+    expect(validateParticipantChairStateRow(withNulls)).toBe(true);
+
+    const { chair_score: _chairScore, focus_responses: _focus, ...omitted } =
+      makeRow();
+    expect(validateParticipantChairStateRow(omitted)).toBe(true);
+  });
+
+  it("accepts numeric strings for Supabase numeric chair_score", () => {
+    expect(
+      validateParticipantChairStateRow(makeRow({ chair_score: "3.90" })),
+    ).toBe(true);
+  });
+
+  it("rejects invalid chair_score values and focus_responses", () => {
+    expect(
+      validateParticipantChairStateRow(makeRow({ chair_score: 0.99 })),
+    ).toBe(false);
+    expect(
+      validateParticipantChairStateRow(makeRow({ chair_score: 5 })),
+    ).toBe(false);
+    expect(
+      validateParticipantChairStateRow(
+        makeRow({ focus_responses: ["one", 2] }),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects focus_responses arrays longer than four items", () => {
+    expect(
+      validateParticipantChairStateRow(
+        makeRow({ focus_responses: ["1", "2", "3", "4", "5"] }),
+      ),
+    ).toBe(false);
+  });
 });
 
 // ============================================================
@@ -185,6 +225,29 @@ describe("mapRowToParticipantChairState", () => {
   it("casts current_chair to ChairNumber", () => {
     const state = mapRowToParticipantChairState(makeRow({ current_chair: 4 }));
     expect(state.currentChair).toBe(4);
+  });
+
+  it("maps null and omitted legacy fields safely", () => {
+    const omitted = { ...makeRow() } as Partial<ParticipantChairStateRow>;
+    delete omitted.chair_score;
+    delete omitted.focus_responses;
+
+    const state = mapRowToParticipantChairState(
+      omitted as ParticipantChairStateRow,
+    );
+    expect(state.chairScore).toBeNull();
+    expect(state.focusResponses).toEqual([]);
+  });
+
+  it("normalizes a numeric-string chair_score and caps focus responses", () => {
+    const state = mapRowToParticipantChairState(
+      makeRow({
+        chair_score: "2.90",
+        focus_responses: ["1", "2", "3", "4", "5"],
+      }),
+    );
+    expect(state.chairScore).toBe(2.9);
+    expect(state.focusResponses).toEqual(["1", "2", "3", "4"]);
   });
 });
 

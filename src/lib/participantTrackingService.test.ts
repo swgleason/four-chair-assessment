@@ -87,6 +87,8 @@ describe("participantTrackingService: Strict rule enforcement", () => {
     expect(record["chair_2_last_at"]).toBeUndefined();
     expect(record["chair_3_last_at"]).toBeUndefined();
     expect(record["chair_4_last_at"]).toBeUndefined();
+    expect(record["chair_score"]).toBeUndefined();
+    expect(record["focus_responses"]).toBeUndefined();
   });
 
   it("buildInProgressPayload sets in_progress_state to null when progress is cleared/null", () => {
@@ -202,6 +204,96 @@ describe("participantTrackingService: Completed assessment payload exact keys", 
       "Question 15 focus",
     ]);
     expect(row["in_progress_state"]).toBeNull();
+  });
+});
+
+describe("participantTrackingService: Sonlife result persistence", () => {
+  it("persists S3 failure as Chair 2 using Section 2's fractional score", () => {
+    const answers: Partial<Record<number, "agree" | "strong" | "weak" | "improving">> =
+      {};
+    for (let i = 1; i <= 7; i++) answers[i] = "agree";
+    for (let i = 8; i <= 14; i++) answers[i] = i === 14 ? "weak" : "strong";
+    for (let i = 15; i <= 21; i++) answers[i] = "weak";
+
+    const progress = makeCompleted({
+      answers,
+      currentQuestion: 21,
+      destination: 2,
+      chairScore: 2.86,
+      focusResponses: ["Focus 1", "Focus 2"],
+    });
+    const payload = buildCompletedAssessmentPayload(progress);
+
+    expect(payload.current_chair).toBe(2);
+    expect(payload.chair_score).toBe(2.86);
+    expect(payload.focus_responses).toEqual(["Focus 1", "Focus 2"]);
+  });
+
+  it("persists S4 failure as Chair 3 using Section 3's fractional score", () => {
+    const answers: Partial<Record<number, "agree" | "strong" | "weak" | "improving">> =
+      {};
+    for (let i = 1; i <= 7; i++) answers[i] = "agree";
+    for (let i = 8; i <= 14; i++) answers[i] = "strong";
+    for (let i = 15; i <= 21; i++) answers[i] = "strong";
+    for (let i = 22; i <= 28; i++) answers[i] = "weak";
+
+    const progress = makeCompleted({
+      answers,
+      currentQuestion: 28,
+      destination: 3,
+      chairScore: 3.9,
+      focusResponses: ["Focus 1"],
+    });
+    const payload = buildCompletedAssessmentPayload(progress);
+
+    expect(payload.current_chair).toBe(3);
+    expect(payload.chair_score).toBe(3.9);
+  });
+
+  it.each([
+    [2, 2.9],
+    [3, 3.9],
+    [4, 4.9],
+  ] as const)("preserves fractional result %s.0 as %s", (chair, score) => {
+    const payload = buildCompletedAssessmentPayload(
+      makeCompleted({
+        destination: chair,
+        chairScore: score,
+      }),
+    );
+    expect(payload.chair_score).toBe(score);
+  });
+
+  it("normalizes focus responses and caps them at four items", () => {
+    const payload = buildCompletedAssessmentPayload(
+      makeCompleted({
+        destination: 4,
+        chairScore: 4.67,
+        focusResponses: ["A", "B", "C", "D", "E"],
+      }),
+    );
+    expect(payload.focus_responses).toEqual(["A", "B", "C", "D"]);
+  });
+
+  it("applies Sonlife fields to an existing row only during completion", () => {
+    const completed = makeCompleted({
+      destination: 4,
+      chairScore: 4.67,
+      focusResponses: ["One", "Two"],
+    });
+    const user = { id: "user-1", email: "u@example.com", displayName: "User" };
+    let row = buildInitialParticipantRow(user, makeInProgress());
+
+    row = applyCompletedAssessmentToRow(row, completed);
+
+    expect(row.current_chair).toBe(4);
+    expect(row.chair_score).toBe(4.67);
+    expect(row.focus_responses).toEqual(["One", "Two"]);
+    expect(row.in_progress_state).toBeNull();
+
+    row = applyInProgressPayloadToRow(row, makeInProgress());
+    expect(row.chair_score).toBe(4.67);
+    expect(row.focus_responses).toEqual(["One", "Two"]);
   });
 });
 

@@ -122,6 +122,10 @@ export function stepBack(
     ...progress,
     answers: cleanedAnswers,
     currentQuestion: destination,
+    completed: false,
+    destination: null,
+    chairScore: undefined,
+    focusResponses: undefined,
     updatedAt: new Date().toISOString(),
   };
 }

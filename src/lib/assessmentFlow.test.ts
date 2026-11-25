@@ -91,8 +91,9 @@ describe("automatic assessment progression with scoring rules", () => {
 
     expect(transition.completed).toBe(true);
     expect(transition.progress.currentQuestion).toBe(21);
-    // OFFSET: Section 3 fail sends user to Chair 2
     expect(transition.progress.destination).toBe(2);
+    expect(transition.chairScore).toBe(2.9);
+    expect(transition.focusResponses?.length).toBeGreaterThan(0);
   });
 
   it("stops at Q28 and routes to Chair 3 (OFFSET) when Section 4 fails (< 14)", () => {
@@ -101,8 +102,9 @@ describe("automatic assessment progression with scoring rules", () => {
 
     expect(transition.completed).toBe(true);
     expect(transition.progress.currentQuestion).toBe(28);
-    // OFFSET: Section 4 fail sends user to Chair 3
     expect(transition.progress.destination).toBe(3);
+    expect(transition.chairScore).toBe(3.9);
+    expect(transition.progress.chairScore).toBeUndefined();
   });
 
   it("routes passing all four sections to Chair 4", () => {
@@ -158,5 +160,31 @@ describe("back navigation and clearing stale answers (stepBack)", () => {
     expect(stepped.currentQuestion).toBe(3);
     expect(stepped.answers[4]).toBeUndefined();
     expect(stepped.answers[3]).toBe("agree");
+  });
+
+  it("prevents stale scoring outputs from lingering after stepping back", () => {
+    const initial = {
+      ...createInitialProgress(),
+      currentQuestion: 15,
+      completed: false,
+      destination: null,
+      chairScore: 2.71,
+      focusResponses: ["Q9 focus", "Q15 focus"],
+      answers: Object.fromEntries(
+        Array.from({ length: 14 }, (_, index) => [
+          index + 1,
+          index < 7 ? ("agree" as const) : ("strong" as const),
+        ]),
+      ),
+    };
+
+    const stepped = stepBack(initial, 8);
+
+    expect(stepped.currentQuestion).toBe(8);
+    expect(stepped.chairScore).toBeUndefined();
+    expect(stepped.focusResponses).toBeUndefined();
+    expect(stepped.answers[8]).toBe("strong");
+    expect(stepped.answers[9]).toBeUndefined();
+    expect(stepped.answers[14]).toBeUndefined();
   });
 });

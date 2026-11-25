@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AnswerChoice } from "../content/questions";
+import { answerAndAdvance } from "./assessmentFlow";
 import {
   clearProgress,
   createInitialProgress,
@@ -175,6 +176,45 @@ describe("progress storage", () => {
     });
   });
 
+  it("persists and restores an answerAndAdvance Q21 offset completion", () => {
+    const answers: Partial<Record<number, AnswerChoice>> = {};
+    for (let i = 1; i <= 14; i++) {
+      answers[i] = i <= 7 ? "agree" : "strong";
+    }
+    for (let i = 15; i <= 20; i++) {
+      answers[i] = i <= 18 ? "weak" : "improving";
+    }
+
+    const initial = {
+      ...createInitialProgress(),
+      answers,
+      currentQuestion: 21,
+    };
+    const transition = answerAndAdvance(initial, 21, "weak");
+    const completed = {
+      ...transition.progress,
+      chairScore: transition.chairScore,
+      focusResponses: transition.focusResponses
+        ? [...transition.focusResponses]
+        : [],
+    };
+
+    expect(completed.destination).toBe(2);
+    expect(completed.chairScore).toBe(2.9);
+
+    const storage = new MemoryStorage();
+    expect(saveProgress(completed, storage)).toBe(true);
+    expect(readProgress(storage)).toMatchObject({
+      progress: {
+        completed: true,
+        destination: 2,
+        currentQuestion: 21,
+        chairScore: 2.9,
+      },
+      error: null,
+    });
+  });
+
   it("accepts completed offset destinations for Sections 3 and 4", () => {
     const sectionThreeAnswers = Object.fromEntries(
       Array.from({ length: 21 }, (_, index) => [
@@ -203,6 +243,40 @@ describe("progress storage", () => {
         })(),
       ).progress?.destination,
     ).toBe(2);
+
+    const sectionFourAnswers = Object.fromEntries(
+      Array.from({ length: 28 }, (_, index) => [
+        index + 1,
+        index < 7
+          ? "agree"
+          : index < 21
+            ? "strong"
+            : "weak",
+      ]),
+    ) as Partial<Record<number, AnswerChoice>>;
+    const sectionFourStorage = new MemoryStorage();
+    sectionFourStorage.setItem(
+      PROGRESS_STORAGE_KEY,
+      JSON.stringify({
+        ...createInitialProgress(),
+        answers: sectionFourAnswers,
+        currentQuestion: 28,
+        completed: true,
+        destination: 3,
+        chairScore: 3.9,
+        focusResponses: ["Question 22 focus"],
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+
+    expect(readProgress(sectionFourStorage)).toMatchObject({
+      progress: {
+        currentQuestion: 28,
+        destination: 3,
+        chairScore: 3.9,
+      },
+      error: null,
+    });
   });
 
   it("clears only the assessment key", () => {
