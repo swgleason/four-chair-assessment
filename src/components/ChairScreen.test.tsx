@@ -9,11 +9,15 @@ function renderChair(
   segmentProgressPercent: number,
   initialLinks?: readonly ChairLinkItem[],
   disableNextStepsForm?: boolean,
+  chairScore?: number,
+  focusResponses?: readonly string[],
 ) {
   return renderToStaticMarkup(
     <ChairScreen
       chair={chair}
       segmentProgressPercent={segmentProgressPercent}
+      chairScore={chairScore}
+      focusResponses={focusResponses}
       notice=""
       onStartOver={vi.fn()}
       initialLinks={initialLinks}
@@ -23,6 +27,32 @@ function renderChair(
 }
 
 describe("ChairScreen progress", () => {
+  it("uses the fractional chairScore for the progress segment", () => {
+    const markup = renderChair(2, 50, undefined, undefined, 2.71);
+
+    expect(markup).toContain('aria-valuenow="42.8"');
+    expect(markup).toContain(
+      'aria-valuetext="Chair 2; 71.0% through the current segment"',
+    );
+  });
+
+  it("renders dynamic focus responses and omits an empty section", () => {
+    const withFocus = renderChair(
+      2,
+      50,
+      undefined,
+      undefined,
+      2.71,
+      ["First focus", "Second focus"],
+    );
+    expect(withFocus).toContain("Where should I focus?");
+    expect(withFocus).toContain("First focus");
+    expect(withFocus).toContain("Second focus");
+
+    const withoutFocus = renderChair(4, 67, undefined, undefined, 4.67, []);
+    expect(withoutFocus).not.toContain("Where should I focus?");
+  });
+
   it.each([
     [1, 95, 23.8],
     [2, 85.5, 46.4],

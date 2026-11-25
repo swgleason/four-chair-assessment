@@ -11,7 +11,7 @@ import {
   saveProgress,
   type AssessmentProgress,
 } from "./lib/progressStorage";
-import { answerAndAdvance } from "./lib/assessmentFlow";
+import { answerAndAdvance, stepBack } from "./lib/assessmentFlow";
 import { resultProgressPercent } from "./lib/scoring";
 import { useParticipantAuth } from "./hooks/useParticipantAuth";
 import type { ParticipantUser } from "./lib/participantAuth";
@@ -184,13 +184,28 @@ export default function App() {
   function answerQuestion(questionId: number, answer: AnswerChoice) {
     if (!progress) return;
     const transition = answerAndAdvance(progress, questionId, answer);
-    persist(transition.progress);
+    const nextProgress: AssessmentProgress = transition.completed
+      ? {
+          ...transition.progress,
+          chairScore: transition.chairScore,
+          focusResponses: transition.focusResponses
+            ? [...transition.focusResponses]
+            : [],
+        }
+      : {
+          ...transition.progress,
+          chairScore: undefined,
+          focusResponses: transition.focusResponses
+            ? [...transition.focusResponses]
+            : [],
+        };
+    persist(nextProgress);
     if (transition.completed) {
       setScreen("result");
       if (participant) {
         void saveCompletedAssessment(
           participant.id,
-          transition.progress,
+          nextProgress,
           participant,
         );
       }
@@ -198,7 +213,7 @@ export default function App() {
       if (participant) {
         void saveInProgressState(
           participant.id,
-          transition.progress,
+          nextProgress,
           participant,
         );
       }
@@ -207,7 +222,13 @@ export default function App() {
 
   function goBack() {
     if (!progress || progress.currentQuestion <= 1) return;
-    const next = { ...progress, currentQuestion: progress.currentQuestion - 1 };
+    const next = {
+      ...stepBack(progress, progress.currentQuestion - 1),
+      completed: false,
+      destination: null,
+      chairScore: undefined,
+      focusResponses: undefined,
+    };
     persist(next);
     if (participant) {
       void saveInProgressState(participant.id, next, participant);
@@ -259,6 +280,8 @@ export default function App() {
       <ChairScreen
         chair={progress.destination}
         segmentProgressPercent={segmentProgressPercent}
+        chairScore={progress.chairScore}
+        focusResponses={progress.focusResponses ?? []}
         notice={notice}
         onStartOver={startOver}
         participant={participant}

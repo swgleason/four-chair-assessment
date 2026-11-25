@@ -13,6 +13,8 @@ const chairNumbers: readonly ChairNumber[] = [1, 2, 3, 4];
 export interface ChairScreenProps {
   chair: ChairNumber;
   segmentProgressPercent: number;
+  chairScore?: number;
+  focusResponses?: readonly string[];
   notice: string;
   onStartOver: () => void;
   initialLinks?: readonly ChairLinkItem[];
@@ -26,6 +28,8 @@ export interface ChairScreenProps {
 export function ChairScreen({
   chair,
   segmentProgressPercent,
+  chairScore,
+  focusResponses = [],
   notice,
   onStartOver,
   initialLinks,
@@ -142,8 +146,19 @@ export function ChairScreen({
   const resources = activeLinks.filter((item) => item.category === "resource");
 
   const content = chairs[chair];
+  const effectiveSegmentProgressPercent =
+    chairScore !== undefined && Number.isFinite(chairScore)
+      ? Math.round(
+          Math.max(
+            0,
+            Math.min(100, (chairScore - Math.floor(chairScore)) * 100),
+          ) * 10,
+        ) / 10
+      : segmentProgressPercent;
   const overallProgress =
-    Math.round(((chair - 1 + segmentProgressPercent / 100) / 4) * 1000) / 10;
+    Math.round(
+      ((chair - 1 + effectiveSegmentProgressPercent / 100) / 4) * 1000,
+    ) / 10;
   const progressLabel =
     chair === 4
       ? "Progress toward ongoing growth beyond Chair 4"
@@ -177,7 +192,7 @@ export function ChairScreen({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={overallProgress}
-                aria-valuetext={`Chair ${chair}; ${segmentProgressPercent.toFixed(1)}% through the current segment`}
+                aria-valuetext={`Chair ${chair}; ${effectiveSegmentProgressPercent.toFixed(1)}% through the current segment`}
               >
                 {chairNumbers.map((stageChair) => {
                   const isComplete = stageChair < chair;
@@ -187,7 +202,7 @@ export function ChairScreen({
                   const fillPercent = isComplete
                     ? 100
                     : isCurrent
-                      ? segmentProgressPercent
+                      ? effectiveSegmentProgressPercent
                       : 0;
 
                   return (
@@ -261,11 +276,11 @@ export function ChairScreen({
             {content.explanationParagraphs.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
-            {content.focusHeading && content.focusItems && (
+            {focusResponses.length > 0 && (
               <>
-                <h3>{content.focusHeading}</h3>
+                <h3>Where should I focus?</h3>
                 <ul>
-                  {content.focusItems.map((item) => (
+                  {focusResponses.slice(0, 4).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { AnswerChoice } from "../content/questions";
 import {
   clearProgress,
   createInitialProgress,
@@ -147,6 +148,61 @@ describe("progress storage", () => {
       progress: null,
       error: expect.any(String),
     });
+  });
+
+  it("saves and restores Sonlife completed-result fields", () => {
+    const storage = new MemoryStorage();
+    const answers = Object.fromEntries(
+      Array.from({ length: 21 }, (_, index) => [
+        index + 1,
+        index < 7 ? "agree" : "strong",
+      ]),
+    ) as Partial<Record<number, AnswerChoice>>;
+    const progress = {
+      ...createInitialProgress(),
+      answers,
+      currentQuestion: 21,
+      completed: true,
+      destination: 2 as const,
+      chairScore: 2.71,
+      focusResponses: ["Chair 1 response", "Question 15 response"],
+    };
+
+    expect(saveProgress(progress, storage)).toBe(true);
+    expect(readProgress(storage)).toMatchObject({
+      progress,
+      error: null,
+    });
+  });
+
+  it("accepts completed offset destinations for Sections 3 and 4", () => {
+    const sectionThreeAnswers = Object.fromEntries(
+      Array.from({ length: 21 }, (_, index) => [
+        index + 1,
+        index < 7 ? "agree" : "strong",
+      ]),
+    ) as Partial<Record<number, AnswerChoice>>;
+    expect(
+      readProgress(
+        (() => {
+          const storage = new MemoryStorage();
+          storage.setItem(
+            PROGRESS_STORAGE_KEY,
+            JSON.stringify({
+              ...createInitialProgress(),
+              answers: sectionThreeAnswers,
+              currentQuestion: 21,
+              completed: true,
+              destination: 2,
+              chairScore: 2.71,
+              focusResponses: [],
+              updatedAt: new Date().toISOString(),
+            }),
+          );
+          return storage;
+        })(),
+      ).progress?.destination,
+    ).toBe(2);
   });
 
   it("clears only the assessment key", () => {

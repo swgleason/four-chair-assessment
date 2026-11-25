@@ -12,6 +12,8 @@ export interface AssessmentProgress {
   completed: boolean;
   destination: ChairNumber | null;
   updatedAt: string;
+  chairScore?: number;
+  focusResponses?: string[];
 }
 
 interface LegacyProgress {
@@ -101,7 +103,15 @@ function hasAnswersThrough(
 export function isAssessmentProgress(value: unknown): value is AssessmentProgress {
   if (!isRecord(value)) return false;
 
-  const { currentQuestion, completed, answers, updatedAt } = value;
+  const {
+    currentQuestion,
+    completed,
+    answers,
+    updatedAt,
+    destination,
+    chairScore,
+    focusResponses,
+  } = value;
   if (
     value.version !== PROGRESS_VERSION ||
     typeof currentQuestion !== "number" ||
@@ -111,15 +121,31 @@ export function isAssessmentProgress(value: unknown): value is AssessmentProgres
     typeof completed !== "boolean" ||
     typeof updatedAt !== "string" ||
     !Number.isFinite(Date.parse(updatedAt)) ||
-    !answersAreValid(answers, questions.length)
+    !answersAreValid(answers, questions.length) ||
+    (chairScore !== undefined &&
+      (typeof chairScore !== "number" ||
+        !Number.isFinite(chairScore) ||
+        chairScore < 1 ||
+        chairScore > 4.9)) ||
+    (focusResponses !== undefined &&
+      (!Array.isArray(focusResponses) ||
+        focusResponses.length > 4 ||
+        focusResponses.some((item) => typeof item !== "string")))
   ) {
     return false;
   }
 
   if (completed) {
+    const validDestination =
+      (currentQuestion === 7 && destination === 1) ||
+      (currentQuestion === 14 && destination === 2) ||
+      (currentQuestion === 21 && destination === 2) ||
+      (currentQuestion === 28 &&
+        (destination === 3 || destination === 4));
+
     return (
       currentQuestion % 7 === 0 &&
-      value.destination === currentQuestion / 7 &&
+      validDestination &&
       hasAnswersThrough(answers, currentQuestion) &&
       Object.keys(answers).every((id) => Number(id) <= currentQuestion)
     );
