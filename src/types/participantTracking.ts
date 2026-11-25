@@ -14,6 +14,8 @@ export interface ParticipantChairStateRow {
   chair_2_last_at: string | null;
   chair_3_last_at: string | null;
   chair_4_last_at: string | null;
+  chair_score?: number | string | null;
+  focus_responses?: unknown | null;
   in_progress_state: unknown | null;
   updated_at: string;
 }
@@ -34,6 +36,8 @@ export interface ParticipantChairState {
   chair2LastAt: Date | null;
   chair3LastAt: Date | null;
   chair4LastAt: Date | null;
+  chairScore: number | null;
+  focusResponses: string[];
   /** Serialised in-progress assessment for cross-device sync. */
   inProgressState: unknown | null;
   updatedAt: Date;
@@ -101,6 +105,36 @@ export function validateParticipantChairStateRow(
     }
   }
 
+  if (
+    row.chair_score !== undefined &&
+    row.chair_score !== null &&
+    (() => {
+      const numericScore =
+        typeof row.chair_score === "number"
+          ? row.chair_score
+          : typeof row.chair_score === "string"
+            ? Number(row.chair_score)
+            : NaN;
+      return (
+        !Number.isFinite(numericScore) ||
+        numericScore < 1 ||
+        numericScore > 4.9
+      );
+    })()
+  ) {
+    return false;
+  }
+
+  if (
+    row.focus_responses !== undefined &&
+    row.focus_responses !== null &&
+    (!Array.isArray(row.focus_responses) ||
+      row.focus_responses.length > 4 ||
+      row.focus_responses.some((item) => typeof item !== "string"))
+  ) {
+    return false;
+  }
+
   if (typeof row.updated_at !== "string") return false;
   if (!Number.isFinite(Date.parse(row.updated_at as string))) return false;
 
@@ -115,6 +149,13 @@ function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const ms = Date.parse(value);
   return Number.isFinite(ms) ? new Date(ms) : null;
+}
+
+function parseFocusResponses(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .slice(0, 4);
 }
 
 export function mapRowToParticipantChairState(
@@ -133,6 +174,16 @@ export function mapRowToParticipantChairState(
     chair2LastAt: parseDate(row.chair_2_last_at),
     chair3LastAt: parseDate(row.chair_3_last_at),
     chair4LastAt: parseDate(row.chair_4_last_at),
+    chairScore: (() => {
+      const numericScore =
+        typeof row.chair_score === "number"
+          ? row.chair_score
+          : typeof row.chair_score === "string"
+            ? Number(row.chair_score)
+            : NaN;
+      return Number.isFinite(numericScore) ? numericScore : null;
+    })(),
+    focusResponses: parseFocusResponses(row.focus_responses),
     inProgressState: row.in_progress_state ?? null,
     updatedAt: new Date(row.updated_at),
   };

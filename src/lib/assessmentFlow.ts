@@ -17,7 +17,7 @@ export interface AnswerTransition {
  *
  * If answering at a section boundary (Q7, Q14, Q21, Q28):
  * - Evaluates section scores and pass/fail thresholds.
- * - Applies Sonlife chair routing and offsets:
+ * - Applies chair routing and offsets:
  *   - S1 < 18 => Chair 1
  *   - S2 < 14 => Chair 2
  *   - S3 < 14 => Chair 2 (via S2 score)
@@ -58,7 +58,7 @@ export function answerAndAdvance(
     };
   }
 
-  // At a section boundary, evaluate via Sonlife scoring logic
+  // At a section boundary, evaluate scoring logic
   const evaluation = evaluateAssessmentSection(question.section, answers);
 
   if (!evaluation.completed) {

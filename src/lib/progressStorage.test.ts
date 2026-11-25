@@ -150,7 +150,7 @@ describe("progress storage", () => {
     });
   });
 
-  it("saves and restores Sonlife completed-result fields", () => {
+  it("saves and restores completed-result fields", () => {
     const storage = new MemoryStorage();
     const answers = Object.fromEntries(
       Array.from({ length: 21 }, (_, index) => [

@@ -6,7 +6,46 @@ import {
   type ParticipantChairState,
   type ParticipantChairStateRow,
 } from "../types/participantTracking";
-import type { ChairNumber } from "./scoring";
+import {
+  calculateChairScore,
+  resultProgressPercent,
+  type ChairNumber,
+} from "./scoring";
+
+function normalizeFocusResponses(
+  focusResponses: readonly string[] | undefined,
+): string[] {
+  return (focusResponses ?? []).filter(
+    (item): item is string => typeof item === "string",
+  ).slice(0, 4);
+}
+
+function getPersistedChairScore(progress: AssessmentProgress): number {
+  if (
+    typeof progress.chairScore === "number" &&
+    Number.isFinite(progress.chairScore) &&
+    progress.chairScore >= 1 &&
+    progress.chairScore <= 4.9
+  ) {
+    return progress.chairScore;
+  }
+
+  if (
+    progress.destination !== null &&
+    Number.isInteger(progress.destination)
+  ) {
+    const chair = progress.destination as ChairNumber;
+    try {
+      const segmentPercent = resultProgressPercent(chair, progress.answers);
+      const derivedSectionScore = Math.round((segmentPercent / 100) * 21);
+      return calculateChairScore(chair, derivedSectionScore);
+    } catch {
+      return chair;
+    }
+  }
+
+  throw new Error("Cannot derive a chair score without a completed destination.");
+}
 
 export interface ReconciliationResult {
   /** The effective progress to save and render locally */
@@ -62,11 +101,15 @@ export function buildCompletedAssessmentPayload(
   }
   const chair = progress.destination as ChairNumber;
   const timestamp = progress.updatedAt || new Date().toISOString();
+  const chairScore = getPersistedChairScore(progress);
+  const focusResponses = normalizeFocusResponses(progress.focusResponses);
 
   return {
     current_chair: chair,
     current_chair_updated_at: timestamp,
     [`chair_${chair}_last_at`]: timestamp,
+    chair_score: chairScore,
+    focus_responses: focusResponses,
     in_progress_state: null,
     updated_at: new Date().toISOString(),
   };
@@ -133,6 +176,8 @@ export function buildInitialParticipantRow(
       chair_2_last_at: chair === 2 ? timestamp : null,
       chair_3_last_at: chair === 3 ? timestamp : null,
       chair_4_last_at: chair === 4 ? timestamp : null,
+      chair_score: getPersistedChairScore(progress),
+      focus_responses: normalizeFocusResponses(progress.focusResponses),
       in_progress_state: null,
       updated_at: new Date().toISOString(),
     };
@@ -148,6 +193,8 @@ export function buildInitialParticipantRow(
     chair_2_last_at: null,
     chair_3_last_at: null,
     chair_4_last_at: null,
+    chair_score: null,
+    focus_responses: [],
     in_progress_state: progress && !progress.completed ? progress : null,
     updated_at: new Date().toISOString(),
   };

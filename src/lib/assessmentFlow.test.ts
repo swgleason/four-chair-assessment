@@ -36,7 +36,7 @@ function progressAtSectionEnd(
   };
 }
 
-describe("automatic assessment progression with Sonlife rules", () => {
+describe("automatic assessment progression with scoring rules", () => {
   it("saves the selected answer and advances to the next question", () => {
     const transition = answerAndAdvance(createInitialProgress(), 1, "unsure");
 

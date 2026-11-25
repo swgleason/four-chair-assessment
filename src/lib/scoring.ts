@@ -32,7 +32,7 @@ export type SectionRoute =
     };
 
 /**
- * Sonlife answer point weights (0 / 2 / 3):
+ * Scoring answer point weights (0 / 2 / 3):
  * - 1st choice ("disagree" in S1; "weak" in S2-4) = 0 points
  * - 2nd choice ("unsure" in S1; "improving" in S2-4) = 2 points
  * - 3rd choice ("agree" in S1; "strong" in S2-4) = 3 points

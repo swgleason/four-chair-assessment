@@ -24,6 +24,8 @@ function makeRow(
     chair_2_last_at: null,
     chair_3_last_at: null,
     chair_4_last_at: null,
+    chair_score: null,
+    focus_responses: [],
     in_progress_state: null,
     updated_at: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -43,6 +45,8 @@ function makeState(
     chair2LastAt: null,
     chair3LastAt: null,
     chair4LastAt: null,
+    chairScore: null,
+    focusResponses: [],
     inProgressState: null,
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
@@ -65,6 +69,8 @@ describe("validateParticipantChairStateRow", () => {
       current_chair_updated_at: "2026-06-01T10:00:00.000Z",
       chair_1_last_at: "2026-03-01T08:00:00.000Z",
       chair_2_last_at: "2026-06-01T10:00:00.000Z",
+      chair_score: 2.71,
+      focus_responses: ["Focus one", "Focus two"],
       in_progress_state: { currentQuestion: 3, answers: {} },
     });
     expect(validateParticipantChairStateRow(row)).toBe(true);
@@ -144,6 +150,8 @@ describe("mapRowToParticipantChairState", () => {
     expect(state.chair2LastAt).toBeNull();
     expect(state.chair3LastAt).toBeNull();
     expect(state.chair4LastAt).toBeNull();
+    expect(state.chairScore).toBeNull();
+    expect(state.focusResponses).toEqual([]);
     expect(state.inProgressState).toBeNull();
     expect(state.updatedAt).toEqual(new Date("2026-01-01T00:00:00.000Z"));
   });
@@ -157,6 +165,8 @@ describe("mapRowToParticipantChairState", () => {
       chair_2_last_at: "2026-06-01T10:00:00.000Z",
       chair_3_last_at: "2026-09-01T12:00:00.000Z",
       chair_4_last_at: null,
+      chair_score: 3.71,
+      focus_responses: ["One", "Two"],
       in_progress_state: { q: 1 },
     });
     const state = mapRowToParticipantChairState(row);
@@ -167,6 +177,8 @@ describe("mapRowToParticipantChairState", () => {
     expect(state.chair2LastAt).toEqual(new Date("2026-06-01T10:00:00.000Z"));
     expect(state.chair3LastAt).toEqual(new Date("2026-09-01T12:00:00.000Z"));
     expect(state.chair4LastAt).toBeNull();
+    expect(state.chairScore).toBe(3.71);
+    expect(state.focusResponses).toEqual(["One", "Two"]);
     expect(state.inProgressState).toEqual({ q: 1 });
   });
 

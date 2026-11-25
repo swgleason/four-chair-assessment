@@ -16,8 +16,8 @@ function allAnswers(_section: SectionNumber, choice: AnswerChoice): AnswerChoice
   return Array(7).fill(choice);
 }
 
-describe("Sonlife point values and section thresholds", () => {
-  it("assigns exact Sonlife points (0 / 2 / 3)", () => {
+describe("Point values and section thresholds", () => {
+  it("assigns exact points (0 / 2 / 3)", () => {
     expect(ANSWER_POINTS.disagree).toBe(0);
     expect(ANSWER_POINTS.unsure).toBe(2);
     expect(ANSWER_POINTS.agree).toBe(3);
@@ -100,7 +100,7 @@ describe("fractional chairScore calculations, caps, and special cases", () => {
   });
 });
 
-describe("Sonlife section routing and offsets", () => {
+describe("Scoring section routing and offsets", () => {
   it("fails Section 1 (< 18) -> Chair 1", () => {
     const answers: Partial<Record<number, AnswerChoice>> = {};
     for (let i = 1; i <= 7; i++) answers[i] = "unsure"; // 14 < 18

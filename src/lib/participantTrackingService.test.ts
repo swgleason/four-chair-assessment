@@ -63,6 +63,8 @@ function makeRemoteState(
     chair2LastAt: null,
     chair3LastAt: null,
     chair4LastAt: null,
+    chairScore: null,
+    focusResponses: [],
     inProgressState: null,
     updatedAt: new Date("2026-11-23T08:00:00.000Z"),
     ...overrides,
@@ -109,6 +111,8 @@ describe("participantTrackingService: Strict rule enforcement", () => {
     expect(row["chair_2_last_at"]).toBeNull();
     expect(row["chair_3_last_at"]).toBeNull();
     expect(row["chair_4_last_at"]).toBeNull();
+    expect(row["chair_score"]).toBeNull();
+    expect(row["focus_responses"]).toEqual([]);
     expect(row["in_progress_state"]).toEqual(progress);
   });
 
@@ -155,9 +159,11 @@ describe("participantTrackingService: Completed assessment payload exact keys", 
       expect(keys).toContain("current_chair");
       expect(keys).toContain("current_chair_updated_at");
       expect(keys).toContain(`chair_${chair}_last_at`);
+      expect(keys).toContain("chair_score");
+      expect(keys).toContain("focus_responses");
       expect(keys).toContain("in_progress_state");
       expect(keys).toContain("updated_at");
-      expect(keys).toHaveLength(5);
+      expect(keys).toHaveLength(7);
 
       // Verify values
       expect(payload["current_chair"]).toBe(chair);
@@ -175,7 +181,12 @@ describe("participantTrackingService: Completed assessment payload exact keys", 
   );
 
   it("buildInitialParticipantRow with completed progress assigns ONLY destination chair field", () => {
-    const completed = makeCompleted({ destination: 2, updatedAt: "2026-11-23T14:00:00.000Z" });
+    const completed = makeCompleted({
+      destination: 2,
+      updatedAt: "2026-11-23T14:00:00.000Z",
+      chairScore: 2.71,
+      focusResponses: ["Chair 1 focus", "Question 15 focus"],
+    });
     const user = { id: "user-2", email: "u2@example.com", displayName: "User 2" };
     const row = buildInitialParticipantRow(user, completed);
 
@@ -185,6 +196,11 @@ describe("participantTrackingService: Completed assessment payload exact keys", 
     expect(row["chair_1_last_at"]).toBeNull();
     expect(row["chair_3_last_at"]).toBeNull();
     expect(row["chair_4_last_at"]).toBeNull();
+    expect(row["chair_score"]).toBe(2.71);
+    expect(row["focus_responses"]).toEqual([
+      "Chair 1 focus",
+      "Question 15 focus",
+    ]);
     expect(row["in_progress_state"]).toBeNull();
   });
 });
