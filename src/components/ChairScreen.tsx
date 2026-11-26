@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "../lib/supabaseClient";
 import type { ChairNumber } from "../lib/scoring";
 import type { ChairLinkItem } from "../types/chairLinks";
 import { ParticipantAuthModal } from "./ParticipantAuthModal";
+import { HomeLogo } from "./HomeLogo";
 
 const chairNumbers: readonly ChairNumber[] = [1, 2, 3, 4];
 
@@ -17,6 +18,7 @@ export interface ChairScreenProps {
   focusResponses?: readonly string[];
   notice: string;
   onStartOver: () => void;
+  onNavigateHome?: () => void;
   initialLinks?: readonly ChairLinkItem[];
   disableNextStepsForm?: boolean;
   /** Currently signed-in participant (optional, for pre-fill + auth prompt) */
@@ -32,6 +34,7 @@ export function ChairScreen({
   focusResponses = [],
   notice,
   onStartOver,
+  onNavigateHome,
   initialLinks,
   disableNextStepsForm = false,
   participant,
@@ -168,11 +171,7 @@ export function ChairScreen({
     <>
       <main className="page-shell">
         <header className="brand-header">
-          <img
-            className="brand-logo"
-            src="/ocupc-logo.png"
-            alt="Oregon City United Pentecostal Church"
-          />
+          <HomeLogo onNavigateHome={onNavigateHome} />
         </header>
         <article className="result-card" aria-labelledby="completion-title">
           <header className="result-header">

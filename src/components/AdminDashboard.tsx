@@ -28,6 +28,7 @@ import {
 } from "../types/participantTracking";
 import { AdminLogin } from "./AdminLogin";
 import { ChairScreen } from "./ChairScreen";
+import { HomeLogo } from "./HomeLogo";
 
 const ALL_CHAIRS: readonly ChairNumber[] = [1, 2, 3, 4];
 
@@ -38,6 +39,7 @@ function formatRosterTimestamp(date: Date): string {
 
 export interface AdminDashboardProps {
   onExitAdmin: () => void;
+  onNavigateHome?: () => void;
   initialSession?: any;
   initialLinks?: ChairLinkItem[];
   initialContacts?: ChairContact[];
@@ -54,6 +56,7 @@ export interface AdminDashboardProps {
 
 export function AdminDashboard({
   onExitAdmin,
+  onNavigateHome,
   initialSession,
   initialLinks,
   initialContacts,
@@ -471,6 +474,7 @@ export function AdminDashboard({
     return (
       <AdminLogin
         onBackToAssessment={onExitAdmin}
+        onNavigateHome={onNavigateHome}
         onSuccess={() => {
           if (supabase) {
             supabase.auth.getSession().then(({ data }) => {
@@ -553,6 +557,7 @@ export function AdminDashboard({
           segmentProgressPercent={50}
           notice=""
           onStartOver={() => setIsPreviewing(false)}
+          onNavigateHome={onNavigateHome}
           initialLinks={previewLinks}
         />
       </div>
@@ -578,10 +583,9 @@ export function AdminDashboard({
       {/* Admin Header */}
       <header className="admin-header">
         <div className="admin-header-left">
-          <img
-            className="brand-logo admin-logo"
-            src="/ocupc-logo.png"
-            alt="Oregon City United Pentecostal Church"
+          <HomeLogo
+            onNavigateHome={onNavigateHome}
+            logoClassName="admin-logo"
           />
           <h1 className="admin-heading">
             {adminView === "participants" ? "Participant Roster" : "Chair Links Manager"}

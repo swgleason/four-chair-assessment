@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ParticipantUser } from "../lib/participantAuth";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { ParticipantAuthModal } from "./ParticipantAuthModal";
+import { HomeLogo } from "./HomeLogo";
 
 export interface WelcomeScreenProps {
   hasSavedProgress: boolean;
@@ -10,6 +11,7 @@ export interface WelcomeScreenProps {
   onContinue: () => void;
   onStartOver: () => void;
   onOpenAdmin?: () => void;
+  onNavigateHome?: () => void;
   /** Currently signed-in participant, or null/undefined (undefined = still loading) */
   participant?: ParticipantUser | null | undefined;
   onSignOut?: () => Promise<void>;
@@ -23,6 +25,7 @@ export function WelcomeScreen({
   onContinue,
   onStartOver,
   onOpenAdmin,
+  onNavigateHome,
   participant,
   onSignOut,
   onAuthenticated,
@@ -40,11 +43,7 @@ export function WelcomeScreen({
     <>
       <main className="page-shell">
         <header className="brand-header">
-          <img
-            className="brand-logo"
-            src="/ocupc-logo.png"
-            alt="Oregon City United Pentecostal Church"
-          />
+          <HomeLogo onNavigateHome={onNavigateHome} />
         </header>
         <section className="welcome-card" aria-labelledby="welcome-title">
           <p className="eyebrow">A tool for reflection</p>

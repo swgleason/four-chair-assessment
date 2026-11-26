@@ -119,8 +119,15 @@ export default function App() {
   }
 
   function navigateToHome() {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isAdminRoute()) {
       window.history.pushState({}, "", "/");
+    }
+    if (
+      progress &&
+      !progress.completed &&
+      Object.keys(progress.answers).length > 0
+    ) {
+      persist(progress);
     }
     setIsAdmin(false);
     setScreen("welcome");
@@ -236,7 +243,12 @@ export default function App() {
   }
 
   if (isAdmin) {
-    return <AdminDashboard onExitAdmin={navigateToHome} />;
+    return (
+      <AdminDashboard
+        onExitAdmin={navigateToHome}
+        onNavigateHome={navigateToHome}
+      />
+    );
   }
 
   if (screen === "welcome") {
@@ -248,6 +260,7 @@ export default function App() {
         onContinue={continueAssessment}
         onStartOver={startOver}
         onOpenAdmin={navigateToAdmin}
+        onNavigateHome={navigateToHome}
         participant={participant}
         onSignOut={signOut}
         onAuthenticated={handleAuthenticated}
@@ -262,6 +275,7 @@ export default function App() {
         notice={notice}
         onAnswer={answerQuestion}
         onBack={goBack}
+        onNavigateHome={navigateToHome}
       />
     );
   }
@@ -284,6 +298,7 @@ export default function App() {
         focusResponses={progress.focusResponses ?? []}
         notice={notice}
         onStartOver={startOver}
+        onNavigateHome={navigateToHome}
         participant={participant}
         onSignOut={signOut}
         onAuthenticated={handleAuthenticated}
@@ -299,6 +314,7 @@ export default function App() {
       onContinue={continueAssessment}
       onStartOver={startOver}
       onOpenAdmin={navigateToAdmin}
+      onNavigateHome={navigateToHome}
       participant={participant}
       onSignOut={signOut}
       onAuthenticated={handleAuthenticated}

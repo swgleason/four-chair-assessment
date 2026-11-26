@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
+import { HomeLogo } from "./HomeLogo";
 
 export interface AdminLoginProps {
   onBackToAssessment: () => void;
+  onNavigateHome?: () => void;
   onSuccess?: () => void;
 }
 
-export function AdminLogin({ onBackToAssessment, onSuccess }: AdminLoginProps) {
+export function AdminLogin({
+  onBackToAssessment,
+  onNavigateHome,
+  onSuccess,
+}: AdminLoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,11 +50,7 @@ export function AdminLogin({ onBackToAssessment, onSuccess }: AdminLoginProps) {
   return (
     <main className="page-shell">
       <header className="brand-header">
-        <img
-          className="brand-logo"
-          src="/ocupc-logo.png"
-          alt="Oregon City United Pentecostal Church"
-        />
+        <HomeLogo onNavigateHome={onNavigateHome} />
       </header>
       <section className="welcome-card" aria-labelledby="admin-login-title">
         <p className="eyebrow">Leader Access</p>

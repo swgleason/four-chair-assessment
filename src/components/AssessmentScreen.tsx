@@ -5,12 +5,14 @@ import {
   type AnswerChoice,
 } from "../content/questions";
 import type { AssessmentProgress } from "../lib/progressStorage";
+import { HomeLogo } from "./HomeLogo";
 
 interface AssessmentScreenProps {
   progress: AssessmentProgress;
   notice: string;
   onAnswer: (questionId: number, answer: AnswerChoice) => void;
   onBack: () => void;
+  onNavigateHome?: () => void;
 }
 
 export function AssessmentScreen({
@@ -18,6 +20,7 @@ export function AssessmentScreen({
   notice,
   onAnswer,
   onBack,
+  onNavigateHome,
 }: AssessmentScreenProps) {
   const question = questions[progress.currentQuestion - 1];
   const [pendingAnswer, setPendingAnswer] = useState<{
@@ -71,11 +74,7 @@ export function AssessmentScreen({
   return (
     <main className="page-shell">
       <header className="brand-header">
-        <img
-          className="brand-logo"
-          src="/ocupc-logo.png"
-          alt="Oregon City United Pentecostal Church"
-        />
+        <HomeLogo onNavigateHome={onNavigateHome} />
       </header>
       <section className="assessment-card" aria-labelledby="assessment-heading">
         <h1 id="assessment-heading">Four Chair Assessment</h1>
