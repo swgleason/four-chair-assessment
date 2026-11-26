@@ -124,8 +124,8 @@ export function calculateChairScore(chair: ChairNumber, score: number): number {
  *
  * Rules:
  * - Triggered ONLY by 0-point answers ("disagree" in S1, "weak" in S2-4).
- * - Process sections 1, 2, 3, 4 in order, questions in ascending ID order.
- * - S1 questions share a single paragraph, added only if list is empty.
+ * - S1 adds one response: Q5's new birth response takes priority over Q1-4, Q6-7.
+ * - Process sections 2, 3, 4 in order, questions in ascending ID order.
  * - S2-4 questions add their focus response while list.length < 4 and not duplicate.
  * - Cap at 4 items total.
  * - Always computed cleanly from answers (no stale items).
@@ -136,7 +136,22 @@ export function collectFocusResponses(
 ): string[] {
   const result: string[] = [];
 
-  for (let s = 1; s <= maxSection; s++) {
+  if (maxSection >= 1) {
+    const sectionOneResponse =
+      answers[5] === "disagree"
+        ? FOCUS_RESPONSES[5]
+        : [1, 2, 3, 4, 6, 7].some(
+              (questionId) => answers[questionId] === "disagree",
+            )
+          ? FOCUS_RESPONSES[1]
+          : undefined;
+
+    if (sectionOneResponse) {
+      result.push(sectionOneResponse);
+    }
+  }
+
+  for (let s = 2; s <= maxSection; s++) {
     const sec = s as SectionNumber;
     const secQuestions = questions.filter((q) => q.section === sec);
 
@@ -148,14 +163,8 @@ export function collectFocusResponses(
         const text = FOCUS_RESPONSES[q.id];
         if (!text) continue;
 
-        if (sec === 1) {
-          if (result.length === 0) {
-            result.push(text);
-          }
-        } else {
-          if (result.length < 4 && !result.includes(text)) {
-            result.push(text);
-          }
+        if (result.length < 4 && !result.includes(text)) {
+          result.push(text);
         }
       }
     }

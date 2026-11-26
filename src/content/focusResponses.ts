@@ -7,18 +7,21 @@ export interface FocusResponseDefinition {
   text: string;
 }
 
-export const CHAIR_1_FOCUS_RESPONSE =
+export const CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE =
   "Continue to explore the life of Christ and His power to forgive sin, transform your life through the new birth, and give you eternal life. Ask questions and seek biblical answers. When you are ready, turn to Christ in repentance and faith, obey His Word in baptism in Jesus’ name for the remission of sins and receive the gift of the Holy Ghost. Through the new birth, God will forgive your sins, make you His child, and give you new life in Him (John 1:12; Romans 3:23; 6:23; John 3:3-5, 16; Acts 2:38).";
 
+export const CHAIR_1_FAITH_FOCUS_RESPONSE =
+  "Continue to explore the life of Christ and His remarkable claims of forgiveness, a new nature, and eternal life. Ask questions and seek biblical answers. When ready, turn to Christ in prayer, inviting Him to take control of your life. (1 John 5:13, Romans  3:23, 6:23, Galatians 2:16, John 14:6, Ephesians 2:10)";
+
 export const FOCUS_RESPONSES: Record<number, string> = {
-  // Chair 1 (Questions 1-7) share identical paragraph
-  1: CHAIR_1_FOCUS_RESPONSE,
-  2: CHAIR_1_FOCUS_RESPONSE,
-  3: CHAIR_1_FOCUS_RESPONSE,
-  4: CHAIR_1_FOCUS_RESPONSE,
-  5: CHAIR_1_FOCUS_RESPONSE,
-  6: CHAIR_1_FOCUS_RESPONSE,
-  7: CHAIR_1_FOCUS_RESPONSE,
+  // Chair 1 (Questions 1-7)
+  1: CHAIR_1_FAITH_FOCUS_RESPONSE,
+  2: CHAIR_1_FAITH_FOCUS_RESPONSE,
+  3: CHAIR_1_FAITH_FOCUS_RESPONSE,
+  4: CHAIR_1_FAITH_FOCUS_RESPONSE,
+  5: CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE,
+  6: CHAIR_1_FAITH_FOCUS_RESPONSE,
+  7: CHAIR_1_FAITH_FOCUS_RESPONSE,
 
   // Chair 2 (Questions 8-14)
   8: "Through prayer, acknowledge daily your dependence upon the Holy Spirit to develop the fruit of the Spirit in your life (Read Romans 8, Gal 5:22-25)",

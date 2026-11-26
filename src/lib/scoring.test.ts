@@ -4,6 +4,10 @@ import {
   type SectionNumber,
 } from "../content/questions";
 import {
+  CHAIR_1_FAITH_FOCUS_RESPONSE,
+  CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE,
+} from "../content/focusResponses";
+import {
   ANSWER_POINTS,
   calculateChairScore,
   collectFocusResponses,
@@ -182,11 +186,50 @@ describe("Scoring section routing and offsets", () => {
 });
 
 describe("focusResponses collection and worked examples from Focus Response Script.csv", () => {
+  it("preserves the exact Section 1 response texts", () => {
+    expect(CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE).toBe(
+      "Continue to explore the life of Christ and His power to forgive sin, transform your life through the new birth, and give you eternal life. Ask questions and seek biblical answers. When you are ready, turn to Christ in repentance and faith, obey His Word in baptism in Jesus’ name for the remission of sins and receive the gift of the Holy Ghost. Through the new birth, God will forgive your sins, make you His child, and give you new life in Him (John 1:12; Romans 3:23; 6:23; John 3:3-5, 16; Acts 2:38).",
+    );
+    expect(CHAIR_1_FAITH_FOCUS_RESPONSE).toBe(
+      "Continue to explore the life of Christ and His remarkable claims of forgiveness, a new nature, and eternal life. Ask questions and seek biblical answers. When ready, turn to Christ in prayer, inviting Him to take control of your life. (1 John 5:13, Romans  3:23, 6:23, Galatians 2:16, John 14:6, Ephesians 2:10)",
+    );
+  });
+
   it("Worked Example E1: All Unsure in Section 1 produces empty focus list", () => {
     const answers: Partial<Record<number, AnswerChoice>> = {};
     for (let i = 1; i <= 7; i++) answers[i] = "unsure";
     const focus = collectFocusResponses(answers, 1);
     expect(focus).toEqual([]);
+  });
+
+  it.each([1, 2, 3, 4, 6, 7] as const)(
+    "uses the faith response for a disagreement on Section 1 question %i",
+    (questionId) => {
+      const answers: Partial<Record<number, AnswerChoice>> = {
+        [questionId]: "disagree",
+      };
+
+      expect(collectFocusResponses(answers, 1)).toEqual([
+        CHAIR_1_FAITH_FOCUS_RESPONSE,
+      ]);
+    },
+  );
+
+  it("uses only the new birth response when question 5 is disagreed with", () => {
+    expect(collectFocusResponses({ 5: "disagree" }, 1)).toEqual([
+      CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE,
+    ]);
+  });
+
+  it("prioritizes the new birth response when question 5 and other Section 1 questions are disagreed with", () => {
+    const answers: Partial<Record<number, AnswerChoice>> = {};
+    for (let questionId = 1; questionId <= 7; questionId++) {
+      answers[questionId] = "disagree";
+    }
+
+    expect(collectFocusResponses(answers, 1)).toEqual([
+      CHAIR_1_NEW_BIRTH_FOCUS_RESPONSE,
+    ]);
   });
 
   it("Worked Example E2: S1 (6 Agree + 1 Disagree), S2 (Q9, Q12 Weak, rest Strong), S3 (Q15, Q16, Q17 Weak, rest Strong)", () => {
@@ -207,7 +250,7 @@ describe("focusResponses collection and worked examples from Focus Response Scri
     const focus = collectFocusResponses(answers, 3);
     // Cap is 4 items: Chair 1 paragraph, Q9, Q12, Q15. Q16 and Q17 crowded out!
     expect(focus.length).toBe(4);
-    expect(focus[0]).toContain("Continue to explore the life of Christ");
+    expect(focus[0]).toBe(CHAIR_1_FAITH_FOCUS_RESPONSE);
     expect(focus[1]).toContain("Pray daily that the Lord would help you develop His priorities"); // Q9
     expect(focus[2]).toContain("Set a goal to spend time in God's Word"); // Q12
     expect(focus[3]).toContain("Pray for God to show you who to begin praying for that does not know Christ."); // Q15
