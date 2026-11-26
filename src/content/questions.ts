@@ -57,7 +57,7 @@ export const questions: readonly AssessmentQuestion[] = [
   {
     id: 4,
     section: 1,
-    text: "There is only one way to God and that is through faith in His Son, Jesus Christ.",
+    text: "There is only one way to God and that is through faith in Jesus Christ.",
     choices: SECTION_ONE_CHOICES,
   },
   {

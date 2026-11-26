@@ -32,7 +32,7 @@ export const FOCUS_RESPONSES: Record<number, string> = {
   // Chair 3 (Questions 15-21)
   15: "Pray for God to show you who to begin praying for that does not know Christ.",
   16: "Take some time to write out your testimony and commit it to memory.  (Ask God for the chance to share it with someone this week)",
-  17: "Write out how you would share the gospel. Once written, practice sharing it with someone this week.",
+  17: "Write out how you would share the gospel. Once written, practice sharing it with someone this week.  (1 Cor 15:1-4, Acts 2:38)",
   18: "Pray today that God would open up opportunities for you to share the gospel.  (Col 4:2-6)",
   19: "Identify two younger believers that you can build a disciple-making relationship with to help them grow.",
   20: "Go through your Bible and identify the most important verses that you think a new believer needs to know to grow in their faith. Share these with a new believer. (2 Tim 2:2)",

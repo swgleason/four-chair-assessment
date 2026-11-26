@@ -65,7 +65,7 @@ Answer choices for every question: **Disagree | Unsure | Agree**
 1. I am confident that I will be with God in heaven after I die
 2. I could never be good enough to earn my way to heaven
 3. Religious acts like going to church, reading my bible, or following religious rules do not make me a Christian
-4. There is only one way to God and that is through faith in His Son, Jesus Christ.
+4. There is only one way to God and that is through faith in Jesus Christ.
 5. I have put my faith in Christ’s death through repentance, His burial through baptism in Jesus name and His resurrection through the infilling of the Holy Ghost evidenced by speaking in tongues.
 6. My commitment to follow Christ is a response to God’s grace and the gift of salvation I’ve received.
 7. Those who don’t put their faith in Christ will be separated from God for eternity in hell.
