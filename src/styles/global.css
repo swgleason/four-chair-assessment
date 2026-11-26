@@ -1332,6 +1332,7 @@ h3 {
 
 .admin-roster-current-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
@@ -1356,6 +1357,17 @@ h3 {
   background: #f1f3f5;
   color: #495057;
   border-color: #ced4da;
+}
+
+.admin-roster-score {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .admin-roster-history {

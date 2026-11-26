@@ -723,6 +723,12 @@ export function AdminDashboard({
                         >
                           {currentChairLabel}
                         </span>
+                        {typeof p.chairScore === "number" &&
+                          Number.isFinite(p.chairScore) && (
+                            <span className="admin-roster-score">
+                              Score: {p.chairScore.toFixed(2)}
+                            </span>
+                          )}
                       </div>
                     </header>
 

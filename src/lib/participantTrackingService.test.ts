@@ -207,7 +207,7 @@ describe("participantTrackingService: Completed assessment payload exact keys", 
   });
 });
 
-describe("participantTrackingService: Sonlife result persistence", () => {
+describe("participantTrackingService: result persistence", () => {
   it("persists S3 failure as Chair 2 using Section 2's fractional score", () => {
     const answers: Partial<Record<number, "agree" | "strong" | "weak" | "improving">> =
       {};
@@ -275,7 +275,7 @@ describe("participantTrackingService: Sonlife result persistence", () => {
     expect(payload.focus_responses).toEqual(["A", "B", "C", "D"]);
   });
 
-  it("applies Sonlife fields to an existing row only during completion", () => {
+  it("applies fields to an existing row only during completion", () => {
     const completed = makeCompleted({
       destination: 4,
       chairScore: 4.67,

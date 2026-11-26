@@ -97,7 +97,7 @@ export function scoreSection(
 }
 
 /**
- * Calculates the fractional chairScore following Sonlife rules:
+ * Calculates the fractional chairScore following rules:
  * - base = chair + (score / 21)
  * - if chair === 2 and score === 21 => 2.9
  * - if chair === 3 and score === 21 => 3.9
@@ -176,7 +176,7 @@ export interface AssessmentEvaluationResult {
 /**
  * Evaluates assessment progression at a section boundary (Q7, Q14, Q21, Q28).
  *
- * Implements Sonlife section thresholds and offsets:
+ * Implements section thresholds and offsets:
  * - Section 1 (< 18) -> Chair 1 via S1 score
  * - Section 2 (< 14) -> Chair 2 via S2 score
  * - Section 3 (< 14) -> Chair 2 via Section 2 score (offset)

@@ -273,6 +273,7 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("Alice Walker");
     expect(markup).toContain("alice@example.com");
     expect(markup).toContain("Chair 3: The Worker");
+    expect(markup).toContain("Score: 3.71");
     // Alice visited chairs in order: Chair 3 (current), Chair 2, Chair 1
     expect(markup).toContain("Visited Chairs (Most to Least Recent)");
     expect(markup).toContain("Chair 3: The Worker");
@@ -286,6 +287,7 @@ describe("AdminDashboard", () => {
     // Bob with email fallback as display name
     expect(markup).toContain("bob@example.com");
     expect(markup).toContain("Chair 1: The Seeker");
+    expect(markup).toContain("Score: 1.67");
     expect(markup).toContain("2026-11-22 09:00 UTC");
 
     // Carol Danvers with in-progress state
@@ -293,6 +295,24 @@ describe("AdminDashboard", () => {
     expect(markup).toContain("carol@example.com");
     expect(markup).toContain("In Progress / Not Yet Completed");
     expect(markup).toContain("No chair assessments completed yet.");
+  });
+
+  it("omits a score for participants whose chairScore is null", () => {
+    const markup = renderToStaticMarkup(
+      <AdminDashboard
+        onExitAdmin={vi.fn()}
+        initialSession={mockUserSession}
+        initialIsAdmin={true}
+        initialView="participants"
+        initialParticipants={sampleParticipants.filter(
+          (participant) => participant.userId === "user-3",
+        )}
+      />,
+    );
+
+    expect(markup).toContain("Carol Danvers");
+    expect(markup).not.toContain("Score:");
+    expect(markup).not.toContain("NaN");
   });
 
   it("filters participant roster by search query (name and email)", () => {
