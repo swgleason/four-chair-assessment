@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   signInParticipant,
   signUpParticipant,
@@ -16,6 +16,32 @@ type Mode = "signin" | "signup";
 const PRIVACY_NOTICE =
   "By creating an account your display name, email address, and chair assessment results and history will be visible to church leadership. This allows leaders to support your spiritual growth journey.";
 
+interface AuthModeToggleProps {
+  mode: Mode;
+  onSwitch: (mode: Mode) => void;
+}
+
+export function AuthModeToggle({ mode, onSwitch }: AuthModeToggleProps) {
+  const nextMode = mode === "signin" ? "signup" : "signin";
+
+  return (
+    <div className="auth-modal-toggle">
+      <span>
+        {mode === "signin"
+          ? "Don't have an account?"
+          : "Already have an account?"}
+      </span>
+      <button
+        type="button"
+        className="auth-toggle-link"
+        onClick={() => onSwitch(nextMode)}
+      >
+        {mode === "signin" ? "Create one" : "Sign in"}
+      </button>
+    </div>
+  );
+}
+
 export function ParticipantAuthModal({
   onClose,
   onAuthenticated,
@@ -27,6 +53,33 @@ export function ParticipantAuthModal({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [signupConfirmed, setSignupConfirmed] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    (emailInputRef.current ?? closeButtonRef.current)?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+      }
+    };
+  }, []);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -77,7 +130,6 @@ export function ParticipantAuthModal({
   }
 
   return (
-    /* Modal backdrop */
     <div
       className="auth-modal-backdrop"
       role="dialog"
@@ -85,11 +137,12 @@ export function ParticipantAuthModal({
       aria-labelledby="auth-modal-title"
       onClick={handleBackdropClick}
     >
-      <div className="auth-modal">
+      <div className="auth-modal" role="document">
         <button
           type="button"
           className="auth-modal-close"
           aria-label="Close sign-in panel"
+          ref={closeButtonRef}
           onClick={onClose}
         >
           ✕
@@ -100,12 +153,12 @@ export function ParticipantAuthModal({
             <h2 id="auth-modal-title" className="auth-modal-title">
               Account Sign-In
             </h2>
-            <p className="status-message">
+            <p className="status-message" role="status" aria-live="polite">
               Cross-device tracking is not available in this environment.
             </p>
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary auth-modal-action"
               onClick={onClose}
             >
               Close
@@ -116,14 +169,18 @@ export function ParticipantAuthModal({
             <h2 id="auth-modal-title" className="auth-modal-title">
               Check Your Email
             </h2>
-            <p className="intro-copy">
+            <p
+              className="intro-copy auth-signup-confirmation"
+              role="status"
+              aria-live="polite"
+            >
               We've sent a confirmation link to <strong>{email}</strong>. Click
               the link in that email to activate your account, then come back
               here to sign in.
             </p>
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary auth-modal-action"
               onClick={onClose}
             >
               Close
@@ -151,8 +208,8 @@ export function ParticipantAuthModal({
             {errorMessage && (
               <p
                 className="status-message admin-error-message"
-                role="alert"
-                aria-live="assertive"
+                role="status"
+                aria-live="polite"
               >
                 {errorMessage}
               </p>
@@ -190,6 +247,7 @@ export function ParticipantAuthModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  ref={emailInputRef}
                 />
               </div>
 
@@ -209,10 +267,10 @@ export function ParticipantAuthModal({
                 />
               </div>
 
-              <div className="action-stack">
+              <div className="auth-modal-actions">
                 <button
                   type="submit"
-                  className="button button-primary"
+                  className="button button-primary auth-modal-submit"
                   disabled={loading}
                 >
                   {loading
@@ -226,31 +284,7 @@ export function ParticipantAuthModal({
               </div>
             </form>
 
-            <div className="auth-modal-toggle">
-              {mode === "signin" ? (
-                <>
-                  Don't have an account?{" "}
-                  <button
-                    type="button"
-                    className="auth-toggle-link"
-                    onClick={() => switchMode("signup")}
-                  >
-                    Create one
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    className="auth-toggle-link"
-                    onClick={() => switchMode("signin")}
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </div>
+            <AuthModeToggle mode={mode} onSwitch={switchMode} />
 
             <div className="auth-modal-guest-note">
               <strong>Signing in is optional.</strong> You can take the

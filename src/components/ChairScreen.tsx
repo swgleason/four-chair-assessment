@@ -354,7 +354,7 @@ export function ChairScreen({
               </p>
               <button
                 type="button"
-                className="button button-secondary"
+                className="button button-secondary auth-account-button"
                 onClick={() => setShowAuthModal(true)}
               >
                 Save My Result →
